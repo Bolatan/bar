@@ -100,6 +100,15 @@ export class ApiError extends Error {
   }
 }
 
+export function isOfflineFallbackError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (error instanceof ApiError) {
+    const s = error.status;
+    return s === 0 || s === 404 || s === 508 || (s >= 500 && s < 600);
+  }
+  return false;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {}
@@ -147,7 +156,7 @@ export const api = {
           body: JSON.stringify({ email, password }),
         });
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) return offlineLogin(email, password);
+        if (isOfflineFallbackError(error)) return offlineLogin(email, password);
         throw error;
       }
     },
@@ -158,7 +167,7 @@ export const api = {
           body: JSON.stringify({ name, email, password }),
         });
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           const user = { id: `offline-user-${Date.now()}`, name, email, role: 'staff' as const };
           offlineMode = true;
           offlineUser = user;
@@ -191,7 +200,7 @@ export const api = {
       try {
         return await apiFetch<{ user: Profile }>('/auth/me');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           const parsed = loadTokens();
           if (parsed && parsed.user) {
             offlineMode = true;
@@ -209,7 +218,7 @@ export const api = {
       try {
         return await apiFetch<{ products: Product[] }>(`/products${qs}`);
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           return { products: OFFLINE_PRODUCTS };
         }
@@ -251,7 +260,7 @@ export const api = {
       try {
         return await apiFetch<{ orders: Order[] }>(`/orders${qs}`);
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           return { orders: OFFLINE_ORDERS };
         }
@@ -290,7 +299,7 @@ export const api = {
       try {
         return await apiFetch<{ shift: Shift | null }>('/shifts/current');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           return { shift: OFFLINE_CURRENT_SHIFT };
         }
@@ -301,7 +310,7 @@ export const api = {
       try {
         return await apiFetch<{ shifts: Shift[] }>('/shifts/history');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           return { shifts: OFFLINE_SHIFTS };
         }
@@ -326,7 +335,7 @@ export const api = {
       try {
         return await apiFetch<{ shift: Shift }>('/shifts/open', { method: 'POST', body: JSON.stringify({ openingFloat }) });
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           const shift = {
             id: `offline-shift-${Date.now()}`,
@@ -365,7 +374,7 @@ export const api = {
       try {
         return await apiFetch<{ shift: Shift }>(`/shifts/${id}/close`, { method: 'POST', body: JSON.stringify({ closingCount }) });
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           if (!OFFLINE_CURRENT_SHIFT) throw new ApiError('No open shift found', 404);
           const shift = OFFLINE_CURRENT_SHIFT;
@@ -392,7 +401,7 @@ export const api = {
       try {
         return await apiFetch<{ [key: string]: unknown }>(`/reports/sales?period=${period}`);
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           const now = new Date();
           const from = new Date();
@@ -440,7 +449,7 @@ export const api = {
       try {
         return await apiFetch<{ totalValue: number; items: unknown[] }>('/reports/inventory-valuation');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           const items = OFFLINE_PRODUCTS.map(p => ({
             name: p.name,
@@ -459,7 +468,7 @@ export const api = {
       try {
         return await apiFetch<{ products: Product[] }>('/reports/low-stock');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           const products = OFFLINE_PRODUCTS.filter(p => p.stockQuantity <= p.reorderThreshold);
           return { products };
@@ -473,7 +482,7 @@ export const api = {
       try {
         return await apiFetch<{ users: Profile[] }>('/users');
       } catch (error) {
-        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+        if (isOfflineFallbackError(error)) {
           offlineMode = true;
           return { users: Object.values(OFFLINE_USERS) };
         }
