@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
+import Shifts from '@/components/Shifts';
+import Reports from '@/components/Reports';
+import Team from '@/components/Team';
+import SettingsView from '@/components/SettingsView';
 
-type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff';
+type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff' | 'settings';
 type CartItem = Product & { quantity: number };
 const money = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 const categories = ['All', 'Beer', 'Spirits', 'Cocktails', 'Soft Drinks', 'Food', 'Wine', 'Other'];
@@ -30,4 +34,105 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
 
 function Placeholder({ title, text, icon: Icon }: { title: string; text: string; icon: typeof BarChart3 }) { return <div className="flex min-h-[520px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300"><Icon size={24} /></div><h1 className="mt-5 text-2xl font-semibold text-white">{title}</h1><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{text}</p></div>; }
 
-export default function Home() { const [user, setUser] = useState<Profile | null>(null); const [view, setView] = useState<View>('dashboard'); const [products, setProducts] = useState<Product[]>([]); const [orders, setOrders] = useState<Order[]>([]); const [mobile, setMobile] = useState(false); const [loading, setLoading] = useState(true); async function load() { try { const [{ products: nextProducts }, { orders: nextOrders }] = await Promise.all([api.products.list(), api.orders.list({ status: 'paid' })]); setProducts(nextProducts); setOrders(nextOrders); } catch { setProducts([]); setOrders([]); } } useEffect(() => { api.auth.me().then(({ user: nextUser }) => { setUser(nextUser); return load(); }).catch(() => clearTokens()).finally(() => setLoading(false)); }, []); if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#07110f] text-sm text-slate-400">Loading workspace…</div>; if (!user) return <AuthScreen onAuth={(nextUser, token, refreshToken) => { saveTokens(token, refreshToken, nextUser); setUser(nextUser); load(); }} />; const refresh = () => load(); const content = view === 'dashboard' ? <Dashboard products={products} orders={orders} profile={user} /> : view === 'inventory' ? <Inventory products={products} refresh={refresh} /> : view === 'pos' ? <Pos products={products} refresh={refresh} /> : view === 'shifts' ? <Placeholder title="Shift control" text="Open the drawer, track expected cash, and close every shift with confidence." icon={Clock3} /> : view === 'reports' ? <Placeholder title="Reports" text="Sales, category performance, staff totals, and stock valuation will live here." icon={ClipboardList} /> : <Placeholder title="Team management" text="Manage active staff, roles, and access from one place." icon={Users} />; return <div className="min-h-screen bg-[#07110f] text-white"><aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}><div className="flex items-center justify-between"><Logo /><button onClick={() => setMobile(false)} className="text-slate-500 lg:hidden"><X size={19} /></button></div><div className="mt-12"><p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">Workspace</p><nav className="space-y-1">{nav.filter(item => user.role === 'owner' || user.role === 'manager' || !['reports', 'staff'].includes(item.id)).map(item => { const Icon = item.icon; return <button key={item.id} onClick={() => { setView(item.id); setMobile(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === item.id ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}><Icon size={18} /><span>{item.label}</span></button>; })}</nav></div><div className="absolute bottom-5 left-5 right-5 border-t border-white/5 pt-5"><button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"><Settings size={18} /> Settings</button><button onClick={() => { clearTokens(); setUser(null); }} className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition hover:bg-red-400/10 hover:text-red-300"><LogOut size={18} /> Sign out</button></div></aside><div className="lg:pl-64"><header className="flex h-20 items-center justify-between border-b border-white/5 px-5 sm:px-8"><button onClick={() => setMobile(true)} className="text-slate-400 lg:hidden"><Menu size={21} /></button><div className="hidden text-sm text-slate-500 sm:block">Malt & Lime <span className="mx-2 text-slate-700">/</span> {nav.find(n => n.id === view)?.label}</div><div className="ml-auto flex items-center gap-4"><div className="hidden text-right sm:block"><p className="text-sm font-medium text-slate-200">{user.name}</p><p className="text-xs capitalize text-slate-500">{user.role}</p></div><div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400/15 text-sm font-semibold text-emerald-300">{user.name.slice(0, 1).toUpperCase()}</div></div></header><main className="mx-auto max-w-[1500px] p-5 sm:p-8">{content}</main></div></div>; }
+export default function Home() {
+  const [user, setUser] = useState<Profile | null>(null);
+  const [view, setView] = useState<View>('dashboard');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [mobile, setMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    try {
+      const [{ products: nextProducts }, { orders: nextOrders }] = await Promise.all([
+        api.products.list(),
+        api.orders.list({ status: 'paid' })
+      ]);
+      setProducts(nextProducts);
+      setOrders(nextOrders);
+    } catch {
+      setProducts([]);
+      setOrders([]);
+    }
+  }
+
+  useEffect(() => {
+    api.auth.me().then(({ user: nextUser }) => {
+      setUser(nextUser);
+      return load();
+    }).catch(() => clearTokens()).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#07110f] text-sm text-slate-400">Loading workspace…</div>;
+  if (!user) return <AuthScreen onAuth={(nextUser, token, refreshToken) => { saveTokens(token, refreshToken); setUser(nextUser); load(); }} />;
+
+  const refresh = () => load();
+
+  const content = view === 'dashboard' ? <Dashboard products={products} orders={orders} profile={user} />
+    : view === 'inventory' ? <Inventory products={products} refresh={refresh} />
+    : view === 'pos' ? <Pos products={products} refresh={refresh} />
+    : view === 'shifts' ? <Shifts profile={user} />
+    : view === 'reports' ? <Reports />
+    : view === 'staff' ? <Team currentUser={user} />
+    : view === 'settings' ? <SettingsView currentUser={user} onProfileUpdated={(nextUser) => setUser(nextUser)} />
+    : <Placeholder title="Team management" text="Manage active staff, roles, and access from one place." icon={Users} />;
+
+  return (
+    <div className="min-h-screen bg-[#07110f] text-white">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between">
+          <Logo />
+          <button onClick={() => setMobile(false)} className="text-slate-500 lg:hidden"><X size={19} /></button>
+        </div>
+        <div className="mt-12">
+          <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">Workspace</p>
+          <nav className="space-y-1">
+            {nav.filter(item => user.role === 'owner' || user.role === 'manager' || !['reports', 'staff'].includes(item.id)).map(item => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setView(item.id); setMobile(false); }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === item.id ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="absolute bottom-5 left-5 right-5 border-t border-white/5 pt-5">
+          <button
+            onClick={() => { setView('settings'); setMobile(false); }}
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === 'settings' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+          >
+            <Settings size={18} /> Settings
+          </button>
+          <button onClick={() => { clearTokens(); setUser(null); }} className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition hover:bg-red-400/10 hover:text-red-300">
+            <LogOut size={18} /> Sign out
+          </button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-64">
+        <header className="flex h-20 items-center justify-between border-b border-white/5 px-5 sm:px-8">
+          <button onClick={() => setMobile(true)} className="text-slate-400 lg:hidden"><Menu size={21} /></button>
+          <div className="hidden text-sm text-slate-500 sm:block">
+            Malt & Lime <span className="mx-2 text-slate-700">/</span> {view === 'settings' ? 'Settings' : nav.find(n => n.id === view)?.label}
+          </div>
+          <div className="ml-auto flex items-center gap-4">
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-medium text-slate-200">{user.name}</p>
+              <p className="text-xs capitalize text-slate-500">{user.role}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400/15 text-sm font-semibold text-emerald-300">
+              {user.name.slice(0, 1).toUpperCase()}
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-[1500px] p-5 sm:p-8">{content}</main>
+      </div>
+    </div>
+  );
+}
