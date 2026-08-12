@@ -77,17 +77,46 @@ export function getAccessToken() {
   return accessToken;
 }
 
+type AuthLostListener = () => void;
+const listeners = new Set<AuthLostListener>();
+
+export function onAuthLost(listener: AuthLostListener) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notifyAuthLost() {
+  clearTokens();
+  listeners.forEach(l => l());
+}
+
+let activeRefreshPromise: Promise<boolean> | null = null;
+
 async function refreshAccessToken(): Promise<boolean> {
   if (!refreshToken) return false;
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!res.ok) return false;
-  const data = await res.json();
-  saveTokens(data.token, data.refreshToken);
-  return true;
+  if (activeRefreshPromise) return activeRefreshPromise;
+
+  activeRefreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      saveTokens(data.token, data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }
 
 export class ApiError extends Error {
@@ -122,11 +151,19 @@ export async function apiFetch<T = unknown>(
 
   let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  if (res.status === 401 && refreshToken) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      headers.Authorization = `Bearer ${accessToken}`;
-      res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const isAuthRoute = path.startsWith('/auth/login') || path.startsWith('/auth/register') || path.startsWith('/auth/refresh') || path.startsWith('/auth/seed');
+
+  if (res.status === 401 && !isAuthRoute) {
+    if (refreshToken) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        headers.Authorization = `Bearer ${accessToken}`;
+        res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      } else {
+        notifyAuthLost();
+      }
+    } else {
+      notifyAuthLost();
     }
   }
 

@@ -15,5 +15,6 @@ router.post('/login', loginLimiter, ctrl.login);
 router.post('/register', loginLimiter, ctrl.register);
 router.post('/refresh', ctrl.refresh);
 router.get('/me', requireAuth, ctrl.me);
+router.get('/seed', ctrl.seed);
 
 module.exports = router;
