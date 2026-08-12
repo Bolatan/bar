@@ -25,7 +25,7 @@ const OFFLINE_USERS: Record<string, Profile> = {
 let offlineMode = false;
 let offlineUser: Profile | null = null;
 
-export function loadTokens(): { token: string; refreshToken: string } | null {
+export function loadTokens(): { token: string; refreshToken: string; user?: Profile } | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -39,17 +39,31 @@ export function loadTokens(): { token: string; refreshToken: string } | null {
   }
 }
 
-export function saveTokens(token: string, refresh: string) {
+export function saveTokens(token: string, refresh: string, user?: Profile) {
   accessToken = token;
   refreshToken = refresh;
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, refreshToken: refresh }));
+    let existingUser: Profile | undefined = undefined;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        existingUser = parsed.user;
+      }
+    } catch {}
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      token,
+      refreshToken: refresh,
+      user: user || existingUser
+    }));
   }
 }
 
 export function clearTokens() {
   accessToken = null;
   refreshToken = null;
+  offlineMode = false;
+  offlineUser = null;
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -152,8 +166,39 @@ export const api = {
       }
     },
     me: async () => {
+      const token = getAccessToken();
+      if (token && token.startsWith('offline-token-')) {
+        offlineMode = true;
+        const parsed = loadTokens();
+        if (parsed && parsed.user) {
+          offlineUser = parsed.user;
+        } else {
+          const userId = token.replace('offline-token-', '');
+          const found = Object.values(OFFLINE_USERS).find(u => u.id === userId);
+          if (found) {
+            offlineUser = found;
+          }
+        }
+        if (offlineUser) {
+          return { user: offlineUser };
+        }
+      }
+
       if (offlineMode && offlineUser) return { user: offlineUser };
-      return apiFetch<{ user: Profile }>('/auth/me');
+
+      try {
+        return await apiFetch<{ user: Profile }>('/auth/me');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          const parsed = loadTokens();
+          if (parsed && parsed.user) {
+            offlineMode = true;
+            offlineUser = parsed.user;
+            return { user: offlineUser };
+          }
+        }
+        throw error;
+      }
     },
   },
   products: {
