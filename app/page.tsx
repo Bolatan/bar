@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
-import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
+import { api, ApiError, clearTokens, saveTokens, onAuthLost, type Order, type Product, type Profile } from '@/lib/api';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
 import Team from '@/components/Team';
@@ -41,6 +41,13 @@ export default function Home() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [mobile, setMobile] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthLost(() => {
+      setUser(null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   async function load() {
     try {
