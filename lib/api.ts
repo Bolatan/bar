@@ -22,6 +22,8 @@ const OFFLINE_USERS: Record<string, Profile> = {
   'manager@maltlime.ng': { id: 'offline-manager', name: 'Manager', email: 'manager@maltlime.ng', role: 'manager' },
   'staff@maltlime.ng': { id: 'offline-staff', name: 'Staff', email: 'staff@maltlime.ng', role: 'staff' },
 };
+let OFFLINE_SHIFTS: Shift[] = [];
+let OFFLINE_CURRENT_SHIFT: Shift | null = null;
 let offlineMode = false;
 let offlineUser: Profile | null = null;
 
@@ -239,21 +241,235 @@ export const api = {
       apiFetch<{ order: Order }>(`/orders/${id}/void`, { method: 'POST', body: JSON.stringify(data) }),
   },
   shifts: {
-    current: () => apiFetch<{ shift: Shift | null }>('/shifts/current'),
-    history: () => apiFetch<{ shifts: Shift[] }>('/shifts/history'),
-    open: (openingFloat: number) =>
-      apiFetch<{ shift: Shift }>('/shifts/open', { method: 'POST', body: JSON.stringify({ openingFloat }) }),
-    close: (id: string, closingCount: number) =>
-      apiFetch<{ shift: Shift }>(`/shifts/${id}/close`, { method: 'POST', body: JSON.stringify({ closingCount }) }),
+    current: async () => {
+      try {
+        return await apiFetch<{ shift: Shift | null }>('/shifts/current');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          return { shift: OFFLINE_CURRENT_SHIFT };
+        }
+        throw error;
+      }
+    },
+    history: async () => {
+      try {
+        return await apiFetch<{ shifts: Shift[] }>('/shifts/history');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          return { shifts: OFFLINE_SHIFTS };
+        }
+        throw error;
+      }
+    },
+    open: async (openingFloat: number) => {
+      if (offlineMode) {
+        const shift = {
+          id: `offline-shift-${Date.now()}`,
+          staffId: offlineUser?.id || 'offline-staff',
+          openingFloat,
+          closingCount: null,
+          expectedCash: null,
+          variance: null,
+          openedAt: new Date().toISOString(),
+          closedAt: null
+        } as Shift;
+        OFFLINE_CURRENT_SHIFT = shift;
+        return { shift };
+      }
+      try {
+        return await apiFetch<{ shift: Shift }>('/shifts/open', { method: 'POST', body: JSON.stringify({ openingFloat }) });
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          const shift = {
+            id: `offline-shift-${Date.now()}`,
+            staffId: offlineUser?.id || 'offline-staff',
+            openingFloat,
+            closingCount: null,
+            expectedCash: null,
+            variance: null,
+            openedAt: new Date().toISOString(),
+            closedAt: null
+          } as Shift;
+          OFFLINE_CURRENT_SHIFT = shift;
+          return { shift };
+        }
+        throw error;
+      }
+    },
+    close: async (id: string, closingCount: number) => {
+      if (offlineMode) {
+        if (!OFFLINE_CURRENT_SHIFT) throw new ApiError('No open shift found', 404);
+        const shift = OFFLINE_CURRENT_SHIFT;
+        const paidOrders = OFFLINE_ORDERS.filter(o => o.status === 'paid' && o.paidAt && o.paidAt >= shift.openedAt);
+        const cashSales = paidOrders
+          .filter(o => o.paymentMethod === 'cash')
+          .reduce((sum, o) => sum + o.total, 0);
+        const expectedCash = shift.openingFloat + cashSales;
+        const variance = closingCount - expectedCash;
+        shift.closingCount = closingCount;
+        shift.expectedCash = expectedCash;
+        shift.variance = variance;
+        shift.closedAt = new Date().toISOString();
+        OFFLINE_SHIFTS.unshift(shift);
+        OFFLINE_CURRENT_SHIFT = null;
+        return { shift };
+      }
+      try {
+        return await apiFetch<{ shift: Shift }>(`/shifts/${id}/close`, { method: 'POST', body: JSON.stringify({ closingCount }) });
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          if (!OFFLINE_CURRENT_SHIFT) throw new ApiError('No open shift found', 404);
+          const shift = OFFLINE_CURRENT_SHIFT;
+          const paidOrders = OFFLINE_ORDERS.filter(o => o.status === 'paid' && o.paidAt && o.paidAt >= shift.openedAt);
+          const cashSales = paidOrders
+            .filter(o => o.paymentMethod === 'cash')
+            .reduce((sum, o) => sum + o.total, 0);
+          const expectedCash = shift.openingFloat + cashSales;
+          const variance = closingCount - expectedCash;
+          shift.closingCount = closingCount;
+          shift.expectedCash = expectedCash;
+          shift.variance = variance;
+          shift.closedAt = new Date().toISOString();
+          OFFLINE_SHIFTS.unshift(shift);
+          OFFLINE_CURRENT_SHIFT = null;
+          return { shift };
+        }
+        throw error;
+      }
+    },
   },
   reports: {
-    sales: (period: string) => apiFetch<{ [key: string]: unknown }>(`/reports/sales?period=${period}`),
-    inventoryValuation: () => apiFetch<{ totalValue: number; items: unknown[] }>('/reports/inventory-valuation'),
-    lowStock: () => apiFetch<{ products: Product[] }>('/reports/low-stock'),
+    sales: async (period: string) => {
+      try {
+        return await apiFetch<{ [key: string]: unknown }>(`/reports/sales?period=${period}`);
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          const now = new Date();
+          const from = new Date();
+          if (period === 'weekly') from.setDate(now.getDate() - 7);
+          else if (period === 'monthly') from.setMonth(now.getMonth() - 1);
+          else from.setHours(0, 0, 0, 0);
+
+          const inRange = OFFLINE_ORDERS.filter(o => o.status === 'paid' && o.paidAt && new Date(o.paidAt) >= from && new Date(o.paidAt) <= now);
+          const revenue = inRange.reduce((sum, o) => sum + o.total, 0);
+          const vat = inRange.reduce((sum, o) => sum + o.vat, 0);
+
+          const byCategory: Record<string, number> = {};
+          const byProduct: Record<string, number> = {};
+          const byStaff: Record<string, number> = {};
+
+          for (const order of inRange) {
+            byStaff[offlineUser?.name || 'Staff'] = (byStaff[offlineUser?.name || 'Staff'] || 0) + order.total;
+            for (const item of order.items) {
+              const product = OFFLINE_PRODUCTS.find(p => p.id === item.productId);
+              const category = product?.category || 'Other';
+              byCategory[category] = (byCategory[category] || 0) + item.unitPrice * item.quantity;
+              byProduct[item.name] = (byProduct[item.name] || 0) + item.quantity;
+            }
+          }
+
+          const topProducts = Object.entries(byProduct)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([name, qty]) => ({ name, quantity: qty }));
+
+          return {
+            period,
+            orderCount: inRange.length,
+            revenue,
+            vat,
+            byCategory: Object.entries(byCategory).map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total),
+            topProducts,
+            byStaff: Object.entries(byStaff).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total),
+          };
+        }
+        throw error;
+      }
+    },
+    inventoryValuation: async () => {
+      try {
+        return await apiFetch<{ totalValue: number; items: unknown[] }>('/reports/inventory-valuation');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          const items = OFFLINE_PRODUCTS.map(p => ({
+            name: p.name,
+            category: p.category,
+            stockQuantity: p.stockQuantity,
+            costPrice: p.costPrice,
+            value: p.stockQuantity * p.costPrice,
+          }));
+          const totalValue = items.reduce((sum, v) => sum + v.value, 0);
+          return { totalValue, items };
+        }
+        throw error;
+      }
+    },
+    lowStock: async () => {
+      try {
+        return await apiFetch<{ products: Product[] }>('/reports/low-stock');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          const products = OFFLINE_PRODUCTS.filter(p => p.stockQuantity <= p.reorderThreshold);
+          return { products };
+        }
+        throw error;
+      }
+    },
+  },
+  users: {
+    list: async () => {
+      try {
+        return await apiFetch<{ users: Profile[] }>('/users');
+      } catch (error) {
+        if (error instanceof TypeError || (error instanceof ApiError && error.status === 0)) {
+          offlineMode = true;
+          return { users: Object.values(OFFLINE_USERS) };
+        }
+        throw error;
+      }
+    },
+    create: async (data: Partial<Profile & { password?: string; pin?: string }>) => {
+      if (offlineMode) {
+        const id = `offline-user-${Date.now()}`;
+        const user = { id, name: data.name || '', email: data.email || '', role: data.role || 'staff', phone: data.phone } as Profile;
+        OFFLINE_USERS[data.email?.toLowerCase() || ''] = user;
+        return { user };
+      }
+      return apiFetch<{ user: Profile }>('/users', { method: 'POST', body: JSON.stringify(data) });
+    },
+    update: async (id: string, data: Partial<Profile & { pin?: string; password?: string }>) => {
+      if (offlineMode) {
+        const email = Object.keys(OFFLINE_USERS).find(key => OFFLINE_USERS[key].id === id);
+        if (email) {
+          OFFLINE_USERS[email] = { ...OFFLINE_USERS[email], ...data } as Profile;
+          return { user: OFFLINE_USERS[email] };
+        }
+        throw new ApiError('User not found', 404);
+      }
+      return apiFetch<{ user: Profile }>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    remove: async (id: string) => {
+      if (offlineMode) {
+        const email = Object.keys(OFFLINE_USERS).find(key => OFFLINE_USERS[key].id === id);
+        if (email) {
+          delete OFFLINE_USERS[email];
+          return { message: 'User deleted' };
+        }
+        throw new ApiError('User not found', 404);
+      }
+      return apiFetch<{ message: string }>(`/users/${id}`, { method: 'DELETE' });
+    }
   },
 };
 
-export type Profile = { id: string; name: string; email: string; role: 'owner' | 'manager' | 'staff'; phone?: string };
+export type Profile = { id: string; name: string; email: string; role: 'owner' | 'manager' | 'staff'; phone?: string; isActive?: boolean };
 export type Product = {
   id: string;
   name: string;
