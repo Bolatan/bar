@@ -1,5 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
-
+const API_BASE = '/api';
 type Token = string | null;
 
 let accessToken: Token = null;
@@ -135,11 +134,11 @@ export async function apiFetch<T = unknown>(
   let data = null;
   try {
     data = text ? JSON.parse(text) : null;
-  } catch (parseError) {
+  } catch (err) {
     if (!res.ok) {
-      throw new ApiError('Request failed', res.status);
+      throw new ApiError('Request failed with non-JSON response', res.status);
     }
-    throw parseError;
+    throw err;
   }
 
   if (!res.ok) {
