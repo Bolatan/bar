@@ -1,11 +1,4 @@
 {
   "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "next build",
-  "outputDirectory": ".next",
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30
-    }
-  }
+  "framework": "nextjs"
 }
