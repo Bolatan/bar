@@ -131,7 +131,15 @@ export async function apiFetch<T = unknown>(
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (err) {
+    if (!res.ok) {
+      throw new ApiError('Request failed with non-JSON response', res.status);
+    }
+    throw err;
+  }
 
   if (!res.ok) {
     throw new ApiError(data?.error || 'Request failed', res.status, data?.details);
