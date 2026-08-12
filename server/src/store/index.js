@@ -1,6 +1,15 @@
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 
+// Register all Mongoose models before any populate() operation
+require('../models/User');
+require('../models/Supplier');
+require('../models/Product');
+require('../models/StockMovement');
+require('../models/Order');
+require('../models/Shift');
+require('../models/AuditLog');
+
 let mongoConnected = false;
 function setMongoConnected(v) { mongoConnected = v; }
 function isMongo() { return mongoConnected; }
