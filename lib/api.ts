@@ -102,6 +102,7 @@ export class ApiError extends Error {
 
 export function isOfflineFallbackError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
+  if (error instanceof SyntaxError) return true;
   if (error instanceof ApiError) {
     const s = error.status;
     return s === 0 || s === 404 || s === 508 || (s >= 500 && s < 600);
@@ -131,7 +132,15 @@ export async function apiFetch<T = unknown>(
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (parseError) {
+    if (!res.ok) {
+      throw new ApiError('Request failed', res.status);
+    }
+    throw parseError;
+  }
 
   if (!res.ok) {
     throw new ApiError(data?.error || 'Request failed', res.status, data?.details);
