@@ -1,25 +1,34 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
+import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X, ShieldAlert } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
 import Team from '@/components/Team';
 import SettingsView from '@/components/SettingsView';
+import AuditLogs from '@/components/AuditLogs';
 
-type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff' | 'settings';
+type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff' | 'settings' | 'audit-logs';
 type CartItem = Product & { quantity: number };
 const money = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 const categories = ['All', 'Beer', 'Spirits', 'Cocktails', 'Soft Drinks', 'Food', 'Wine', 'Other'];
-const nav = [{ id: 'dashboard' as View, label: 'Overview', icon: BarChart3 }, { id: 'pos' as View, label: 'Point of sale', icon: ShoppingCart }, { id: 'inventory' as View, label: 'Inventory', icon: Boxes }, { id: 'shifts' as View, label: 'Shifts', icon: Clock3 }, { id: 'reports' as View, label: 'Reports', icon: ClipboardList }, { id: 'staff' as View, label: 'Team', icon: Users }];
+const nav = [
+  { id: 'dashboard' as View, label: 'Overview', icon: BarChart3 },
+  { id: 'pos' as View, label: 'Point of sale', icon: ShoppingCart },
+  { id: 'inventory' as View, label: 'Inventory', icon: Boxes },
+  { id: 'shifts' as View, label: 'Shifts', icon: Clock3 },
+  { id: 'reports' as View, label: 'Reports', icon: ClipboardList },
+  { id: 'staff' as View, label: 'Team', icon: Users },
+  { id: 'audit-logs' as View, label: 'Audit Log', icon: ShieldAlert }
+];
 
 function Logo() { return <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950"><Beer size={21} /></div><div><div className="text-[15px] font-bold tracking-tight text-white">Malt & Lime</div><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Lagos operations</div></div></div>; }
 
 function AuthScreen({ onAuth }: { onAuth: (user: Profile, token: string, refreshToken: string) => void }) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login'); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setError(''); setBusy(true); try { const result = mode === 'login' ? await api.auth.login(email, password) : await api.auth.register(name, email, password); if (!result.user) throw new Error('Unable to sign in'); onAuth(result.user, result.token, result.refreshToken); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to sign in'); } finally { setBusy(false); } }
-  return <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white"><div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"><div className="relative hidden overflow-hidden p-12 lg:block"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" /><div className="relative flex h-full flex-col justify-between"><Logo /><div><p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p><h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Sparkles size={16} className="text-emerald-300" /> Designed for the Lagos hospitality rhythm</div></div></div><div className="p-8 sm:p-12"><div className="mb-12 lg:hidden"><Logo /></div><div className="mb-8"><p className="mb-3 text-sm text-emerald-300">Welcome back</p><h2 className="text-3xl font-semibold tracking-tight">{mode === 'login' ? 'Sign in to your bar' : 'Create your account'}</h2><p className="mt-2 text-sm text-slate-400">{mode === 'login' ? 'Pick up where the shift left off.' : 'New accounts start as staff.'}</p></div><form onSubmit={submit} className="space-y-5">{mode === 'signup' && <label className="block text-sm text-slate-300">Full name<input value={name} onChange={e => setName(e.target.value)} required className="field mt-2" placeholder="Amaka Bello" /></label>}<label className="block text-sm text-slate-300">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" /></label><label className="block text-sm text-slate-300">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="field mt-2" placeholder="At least 6 characters" /></label>{error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}<button disabled={busy} className="button-primary w-full">{busy ? 'Please wait…' : mode === 'login' ? 'Enter workspace' : 'Create account'}<ChevronRight size={17} /></button></form><button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="mt-6 w-full text-sm text-slate-400 transition hover:text-white">{mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}</button></div></div></main>;
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  async function submit(event: React.FormEvent) { event.preventDefault(); setError(''); setBusy(true); try { const result = await api.auth.login(email, password); if (!result.user) throw new Error('Unable to sign in'); onAuth(result.user, result.token, result.refreshToken); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to sign in'); } finally { setBusy(false); } }
+  return <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white"><div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"><div className="relative hidden overflow-hidden p-12 lg:block"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" /><div className="relative flex h-full flex-col justify-between"><Logo /><div><p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p><h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Sparkles size={16} className="text-emerald-300" /> Designed for the Lagos hospitality rhythm</div></div></div><div className="p-8 sm:p-12"><div className="mb-12 lg:hidden"><Logo /></div><div className="mb-8"><p className="mb-3 text-sm text-emerald-300">Welcome back</p><h2 className="text-3xl font-semibold tracking-tight">Sign in to your bar</h2><p className="mt-2 text-sm text-slate-400">Pick up where the shift left off.</p></div><form onSubmit={submit} className="space-y-5"><label className="block text-sm text-slate-300">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" /></label><label className="block text-sm text-slate-300">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="field mt-2" placeholder="At least 6 characters" /></label>{error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}<button disabled={busy} className="button-primary w-full">{busy ? 'Please wait…' : 'Enter workspace'}<ChevronRight size={17} /></button></form></div></div></main>;
 }
 
 function Stat({ label, value, detail, icon: Icon, tone = 'green' }: { label: string; value: string; detail: string; icon: typeof BarChart3; tone?: string }) { return <div className="panel p-5"><div className="mb-6 flex items-center justify-between"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone === 'orange' ? 'bg-orange-400/10 text-orange-300' : tone === 'blue' ? 'bg-sky-400/10 text-sky-300' : 'bg-emerald-400/10 text-emerald-300'}`}><Icon size={19} /></span><span className="text-xs text-emerald-300">Live</span></div><p className="text-sm text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p><p className="mt-2 text-xs text-slate-500">{detail}</p></div>; }
@@ -36,11 +45,24 @@ function Placeholder({ title, text, icon: Icon }: { title: string; text: string;
 
 export default function Home() {
   const [user, setUser] = useState<Profile | null>(null);
-  const [view, setView] = useState<View>('dashboard');
+  const [view, setView] = useState<View>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ml_view');
+      if (saved) return saved as View;
+    }
+    return 'dashboard';
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [mobile, setMobile] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const changeView = (newView: View) => {
+    setView(newView);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ml_view', newView);
+    }
+  };
 
   async function load() {
     try {
@@ -63,6 +85,20 @@ export default function Home() {
     }).catch(() => clearTokens()).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const isAllowed = (v: View) => {
+        if (v === 'dashboard' || v === 'pos' || v === 'inventory' || v === 'shifts' || v === 'settings') return true;
+        if (v === 'reports' || v === 'staff') return user.role === 'owner' || user.role === 'manager';
+        if (v === 'audit-logs') return user.role === 'owner';
+        return false;
+      };
+      if (!isAllowed(view)) {
+        changeView('dashboard');
+      }
+    }
+  }, [user, view]);
+
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#07110f] text-sm text-slate-400">Loading workspace…</div>;
   if (!user) return <AuthScreen onAuth={(nextUser, token, refreshToken) => { saveTokens(token, refreshToken); setUser(nextUser); load(); }} />;
 
@@ -74,6 +110,7 @@ export default function Home() {
     : view === 'shifts' ? <Shifts profile={user} />
     : view === 'reports' ? <Reports />
     : view === 'staff' ? <Team currentUser={user} />
+    : view === 'audit-logs' ? <AuditLogs />
     : view === 'settings' ? <SettingsView currentUser={user} onProfileUpdated={(nextUser) => setUser(nextUser)} />
     : <Placeholder title="Team management" text="Manage active staff, roles, and access from one place." icon={Users} />;
 
@@ -87,12 +124,15 @@ export default function Home() {
         <div className="mt-12">
           <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">Workspace</p>
           <nav className="space-y-1">
-            {nav.filter(item => user.role === 'owner' || user.role === 'manager' || !['reports', 'staff'].includes(item.id)).map(item => {
+            {nav.filter(item => {
+              if (item.id === 'audit-logs') return user.role === 'owner';
+              return user.role === 'owner' || user.role === 'manager' || !['reports', 'staff'].includes(item.id);
+            }).map(item => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
-                  onClick={() => { setView(item.id); setMobile(false); }}
+                  onClick={() => { changeView(item.id); setMobile(false); }}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === item.id ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                 >
                   <Icon size={18} />
@@ -104,12 +144,12 @@ export default function Home() {
         </div>
         <div className="absolute bottom-5 left-5 right-5 border-t border-white/5 pt-5">
           <button
-            onClick={() => { setView('settings'); setMobile(false); }}
+            onClick={() => { changeView('settings'); setMobile(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === 'settings' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
           >
             <Settings size={18} /> Settings
           </button>
-          <button onClick={() => { clearTokens(); setUser(null); }} className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition hover:bg-red-400/10 hover:text-red-300">
+          <button onClick={() => { clearTokens(); setUser(null); changeView('dashboard'); }} className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition hover:bg-red-400/10 hover:text-red-300">
             <LogOut size={18} /> Sign out
           </button>
         </div>

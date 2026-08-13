@@ -96,3 +96,24 @@
 .panel {
   @apply rounded-2xl border border-white/10 bg-[#0c1a17] shadow-[0_18px_60px_rgba(0,0,0,0.12)];
 }
+
+/* Dropdown menus should have a black background before mouse hover */
+select, option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.bg-popover,
+[role="listbox"],
+[role="menu"],
+[data-radix-popper-content-wrapper] [role="menu"],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+select option:hover {
+  background-color: #10b981 !important;
+  color: #000000 !important;
+}
