@@ -1,6 +1,6 @@
 # Malt & Lime Bar Management
 
-A bar management workspace for Lagos operations, with a Next.js web interface and an Express + MongoDB API.
+A bar management workspace for Nigerian operations, with a Next.js web interface and an Express + MongoDB API.
 
 ## Stack
 

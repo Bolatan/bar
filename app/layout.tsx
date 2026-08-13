@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Malt & Lime | Bar Operations',
-  description: 'A calmer command centre for Lagos hospitality operations',
+  description: 'A calmer command centre for Nigerian hospitality operations',
   openGraph: {
     images: [
       {

@@ -241,7 +241,7 @@ export default function Team({ currentUser }: { currentUser: Profile }) {
             <div className="flex items-start justify-between border-b border-white/5 pb-4">
               <div>
                 <h2 className="text-xl font-semibold text-white">Add Staff Member</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Authorise a new operator for the Lagos operations workspace.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Authorise a new operator for the Nigerian operations workspace.</p>
               </div>
               <button type="button" onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white">
                 <X size={20} />

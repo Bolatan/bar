@@ -23,12 +23,12 @@ const nav = [
   { id: 'audit-logs' as View, label: 'Audit Log', icon: ShieldAlert }
 ];
 
-function Logo() { return <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950"><Beer size={21} /></div><div><div className="text-[15px] font-bold tracking-tight text-white">Malt & Lime</div><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Lagos operations</div></div></div>; }
+function Logo() { return <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950"><Beer size={21} /></div><div><div className="text-[15px] font-bold tracking-tight text-white">Malt & Lime</div><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Nigerian operations</div></div></div>; }
 
 function AuthScreen({ onAuth }: { onAuth: (user: Profile, token: string, refreshToken: string) => void }) {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); setError(''); setBusy(true); try { const result = await api.auth.login(email, password); if (!result.user) throw new Error('Unable to sign in'); onAuth(result.user, result.token, result.refreshToken); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to sign in'); } finally { setBusy(false); } }
-  return <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white"><div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"><div className="relative hidden overflow-hidden p-12 lg:block"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" /><div className="relative flex h-full flex-col justify-between"><Logo /><div><p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p><h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Sparkles size={16} className="text-emerald-300" /> Designed for the Lagos hospitality rhythm</div></div></div><div className="p-8 sm:p-12"><div className="mb-12 lg:hidden"><Logo /></div><div className="mb-8"><p className="mb-3 text-sm text-emerald-300">Welcome back</p><h2 className="text-3xl font-semibold tracking-tight">Sign in to your bar</h2><p className="mt-2 text-sm text-slate-400">Pick up where the shift left off.</p></div><form onSubmit={submit} className="space-y-5"><label className="block text-sm text-slate-300">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" /></label><label className="block text-sm text-slate-300">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="field mt-2" placeholder="At least 6 characters" /></label>{error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}<button disabled={busy} className="button-primary w-full">{busy ? 'Please wait…' : 'Enter workspace'}<ChevronRight size={17} /></button></form></div></div></main>;
+  return <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white"><div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"><div className="relative hidden overflow-hidden p-12 lg:block"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" /><div className="relative flex h-full flex-col justify-between"><Logo /><div><p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p><h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Sparkles size={16} className="text-emerald-300" /> Designed for the Nigerian hospitality rhythm</div></div></div><div className="p-8 sm:p-12"><div className="mb-12 lg:hidden"><Logo /></div><div className="mb-8"><p className="mb-3 text-sm text-emerald-300">Welcome back</p><h2 className="text-3xl font-semibold tracking-tight">Sign in to your bar</h2><p className="mt-2 text-sm text-slate-400">Pick up where the shift left off.</p></div><form onSubmit={submit} className="space-y-5"><label className="block text-sm text-slate-300">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" /></label><label className="block text-sm text-slate-300">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="field mt-2" placeholder="At least 6 characters" /></label>{error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}<button disabled={busy} className="button-primary w-full">{busy ? 'Please wait…' : 'Enter workspace'}<ChevronRight size={17} /></button></form></div></div></main>;
 }
 
 function Stat({ label, value, detail, icon: Icon, tone = 'green' }: { label: string; value: string; detail: string; icon: typeof BarChart3; tone?: string }) { return <div className="panel p-5"><div className="mb-6 flex items-center justify-between"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone === 'orange' ? 'bg-orange-400/10 text-orange-300' : tone === 'blue' ? 'bg-sky-400/10 text-sky-300' : 'bg-emerald-400/10 text-emerald-300'}`}><Icon size={19} /></span><span className="text-xs text-emerald-300">Live</span></div><p className="text-sm text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p><p className="mt-2 text-xs text-slate-500">{detail}</p></div>; }
@@ -220,13 +220,13 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               )}
 
               <div className="text-center font-bold text-sm">MALT & LIME BAR</div>
-              <div className="text-center">LAGOS OPERATIONS</div>
+              <div className="text-center">NIGERIAN OPERATIONS</div>
               <div className="text-center text-[10px]">12 Admiralty Way, Lekki Phase 1</div>
-              <div className="text-center text-[10px]">Lagos, Nigeria</div>
+              <div className="text-center text-[10px]">Nigeria</div>
               <div className="border-b border-dashed border-slate-300 my-3" />
               <div className="flex justify-between">
                 <span>Date:</span>
-                <span>{new Date(receiptToPrint.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                <span>{new Date(receiptToPrint.createdAt).toLocaleString('en-NG', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Lagos' })}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tab:</span>
@@ -314,13 +314,13 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
       {receiptToPrint && (
         <div className="hidden print:block bg-white text-black p-6 font-mono text-xs w-[72mm] mx-auto leading-relaxed">
           <div className="text-center font-bold text-sm">MALT & LIME BAR</div>
-          <div className="text-center">LAGOS OPERATIONS</div>
+          <div className="text-center">NIGERIAN OPERATIONS</div>
           <div className="text-center text-[10px]">12 Admiralty Way, Lekki Phase 1</div>
-          <div className="text-center text-[10px]">Lagos, Nigeria</div>
+          <div className="text-center text-[10px]">Nigeria</div>
           <div className="border-b border-dashed border-black my-3" />
           <div className="flex justify-between">
             <span>Date:</span>
-            <span>{new Date(receiptToPrint.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span>{new Date(receiptToPrint.createdAt).toLocaleString('en-NG', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Lagos' })}</span>
           </div>
           <div className="flex justify-between">
             <span>Tab:</span>
@@ -366,7 +366,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
           <div className="border-b border-dashed border-black my-3" />
           <div className="text-center font-semibold">PAID VIA CASH</div>
           <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>
-          <div className="text-center text-[9px] text-gray-500">Malt & Lime - Lagos hospitality rhythm</div>
+          <div className="text-center text-[9px] text-gray-500">Malt & Lime - Nigerian hospitality rhythm</div>
         </div>
       )}
     </div>

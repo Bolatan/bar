@@ -148,13 +148,13 @@ export default function Reports() {
 
                 <div className="panel p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Lagos State VAT</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Federal VAT (7.5%)</span>
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-400/10 text-purple-300">
                       <Percent size={16} />
                     </span>
                   </div>
                   <p className="text-3xl font-semibold tracking-tight text-white">{money.format(salesData.vat)}</p>
-                  <p className="mt-2 text-xs text-slate-500">7.5% value-added tax calculated</p>
+                  <p className="mt-2 text-xs text-slate-500">7.5% Federal value-added tax calculated</p>
                 </div>
               </div>
 
