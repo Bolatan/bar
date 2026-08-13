@@ -1,3 +1,4 @@
+process.env.TZ = 'Africa/Lagos';
 const express = require('express');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
