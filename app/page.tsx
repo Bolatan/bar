@@ -57,8 +57,31 @@ function Dashboard({ products, orders, profile, onNewOrder }: { products: Produc
 
   // Generate the last 7 days ending with today in West Africa Time
   const last7Days = useMemo(() => {
+    const getLagosDateParts = (date: Date) => {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Lagos',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(date);
+      const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+      return {
+        year: parseInt(getPart('year'), 10),
+        month: parseInt(getPart('month'), 10),
+        day: parseInt(getPart('day'), 10)
+      };
+    };
+
+    const pToday = getLagosDateParts(new Date());
+    const todayInLagos = new Date(`${pToday.year}-${String(pToday.month).padStart(2, '0')}-${String(pToday.day).padStart(2, '0')}T12:00:00+01:00`);
+
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
+      const d = new Date(todayInLagos.getTime());
       d.setDate(d.getDate() - (6 - i));
       return d;
     });

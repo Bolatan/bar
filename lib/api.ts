@@ -439,11 +439,43 @@ export const api = {
       } catch (error) {
         if (isOfflineFallbackError(error)) {
           offlineMode = true;
+          const getLagosDateParts = (date: Date) => {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'Africa/Lagos',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            });
+            const parts = formatter.formatToParts(date);
+            const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+            return {
+              year: parseInt(getPart('year'), 10),
+              month: parseInt(getPart('month'), 10),
+              day: parseInt(getPart('day'), 10),
+              hour: parseInt(getPart('hour'), 10),
+              minute: parseInt(getPart('minute'), 10),
+              second: parseInt(getPart('second'), 10)
+            };
+          };
+
+          const pNow = getLagosDateParts(new Date());
           const now = new Date();
-          const from = new Date();
-          if (period === 'weekly') from.setDate(now.getDate() - 7);
-          else if (period === 'monthly') from.setMonth(now.getMonth() - 1);
-          else from.setHours(0, 0, 0, 0);
+          let from = new Date();
+          if (period === 'weekly') {
+            const lagosTimeNow = new Date(`${pNow.year}-${String(pNow.month).padStart(2, '0')}-${String(pNow.day).padStart(2, '0')}T${String(pNow.hour).padStart(2, '0')}:${String(pNow.minute).padStart(2, '0')}:${String(pNow.second).padStart(2, '0')}+01:00`);
+            from = new Date(lagosTimeNow.getTime());
+            from.setDate(from.getDate() - 7);
+          } else if (period === 'monthly') {
+            const lagosTimeNow = new Date(`${pNow.year}-${String(pNow.month).padStart(2, '0')}-${String(pNow.day).padStart(2, '0')}T${String(pNow.hour).padStart(2, '0')}:${String(pNow.minute).padStart(2, '0')}:${String(pNow.second).padStart(2, '0')}+01:00`);
+            from = new Date(lagosTimeNow.getTime());
+            from.setMonth(from.getMonth() - 1);
+          } else {
+            from = new Date(`${pNow.year}-${String(pNow.month).padStart(2, '0')}-${String(pNow.day).padStart(2, '0')}T00:00:00+01:00`);
+          }
 
           const inRange = OFFLINE_ORDERS.filter(o => o.status === 'paid' && o.paidAt && new Date(o.paidAt) >= from && new Date(o.paidAt) <= now);
           const revenue = inRange.reduce((sum, o) => sum + o.total, 0);

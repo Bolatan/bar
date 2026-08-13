@@ -1,3 +1,4 @@
+process.env.TZ = 'Africa/Lagos';
 const { app, connectMongo } = require('./app');
 const config = require('./config');
 

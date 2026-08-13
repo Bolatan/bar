@@ -1,0 +1,9 @@
+
+> malt-lime-server@1.0.0 start
+> node src/index.js
+
+MongoDB unavailable — running in in-memory mode.
+  connect ECONNREFUSED ::1:27017, connect ECONNREFUSED 127.0.0.1:27017
+Malt & Lime API running on port 5000
+[0mGET /api/health [32m200[0m 10.961 ms - 68[0m
+Terminated
