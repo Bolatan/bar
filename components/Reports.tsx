@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { TrendingUp, ClipboardList, AlertTriangle, DollarSign, Users, Percent, Beer, Boxes } from 'lucide-react';
+import { TrendingUp, ClipboardList, AlertTriangle, Banknote, Users, Percent, Beer, Boxes } from 'lucide-react';
 
 const money = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 
@@ -128,7 +128,7 @@ export default function Reports() {
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Period Revenue</span>
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">
-                      <DollarSign size={16} />
+                      <Banknote size={16} />
                     </span>
                   </div>
                   <p className="text-3xl font-semibold tracking-tight text-white">{money.format(salesData.revenue)}</p>
@@ -148,7 +148,7 @@ export default function Reports() {
 
                 <div className="panel p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Lagos State VAT</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Nigeria Federal VAT</span>
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-400/10 text-purple-300">
                       <Percent size={16} />
                     </span>

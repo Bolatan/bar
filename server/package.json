@@ -1,7 +1,7 @@
 {
   "name": "malt-lime-server",
   "version": "1.0.0",
-  "description": "Bar management API for Lagos, Nigeria",
+  "description": "Bar management API for Nigeria",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

@@ -185,7 +185,7 @@ export default function Shifts({ profile }: { profile: Profile }) {
                 <div>
                   <p className="text-slate-400 text-xs">Opened At</p>
                   <p className="mt-1 font-medium text-white">
-                    {new Date(currentShift.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(currentShift.openedAt).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })}
                   </p>
                 </div>
                 <div>
@@ -277,11 +277,11 @@ export default function Shifts({ profile }: { profile: Profile }) {
                         <tr key={s.id} className="border-t border-white/5 transition hover:bg-white/[0.01]">
                           <td className="py-4 pr-4">
                             <p className="font-medium text-slate-200">
-                              {new Date(s.openedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              {new Date(s.openedAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', timeZone: 'Africa/Lagos' })}
                             </p>
                             <p className="mt-0.5 text-xs text-slate-500">
-                              {new Date(s.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              {s.closedAt && ` - ${new Date(s.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                              {new Date(s.openedAt).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })}
+                              {s.closedAt && ` - ${new Date(s.closedAt).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })}`}
                             </p>
                           </td>
                           <td className="py-4 text-right text-slate-300 font-medium pr-1">

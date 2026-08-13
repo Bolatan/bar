@@ -238,7 +238,7 @@ export default function SettingsView({
               <Globe size={20} />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-white">Lagos Operations Policy</h2>
+              <h2 className="text-lg font-semibold text-white">Nigeria Operations Policy</h2>
               <p className="text-xs text-slate-500">Tax compliance settings and base server diagnostics.</p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function SettingsView({
             <div className="flex items-start gap-3 rounded-xl bg-white/[0.02] p-4 border border-white/5">
               <Percent className="text-emerald-300 mt-0.5 shrink-0" size={18} />
               <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Lagos State VAT</p>
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Nigeria Federal VAT</p>
                 <p className="text-xl font-bold text-white mt-1">7.5%</p>
                 <p className="text-[11px] text-slate-500 mt-0.5">Applied on checkouts.</p>
               </div>

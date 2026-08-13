@@ -152,18 +152,20 @@ export default function AuditLogs() {
                         <div className="flex items-center gap-2 text-slate-300">
                           <Calendar size={13} className="text-slate-500" />
                           <span>
-                            {new Date(log.createdAt).toLocaleDateString([], {
+                            {new Date(log.createdAt).toLocaleDateString('en-NG', {
                               month: 'short',
                               day: 'numeric',
                               year: 'numeric',
+                              timeZone: 'Africa/Lagos',
                             })}
                           </span>
                           <span className="text-slate-600">|</span>
                           <span className="text-slate-400">
-                            {new Date(log.createdAt).toLocaleTimeString([], {
+                            {new Date(log.createdAt).toLocaleTimeString('en-NG', {
                               hour: '2-digit',
                               minute: '2-digit',
                               second: '2-digit',
+                              timeZone: 'Africa/Lagos',
                             })}
                           </span>
                         </div>
