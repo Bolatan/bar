@@ -30,7 +30,339 @@ function AddProduct({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
 
 function Inventory({ products, refresh }: { products: Product[]; refresh: () => void }) { const [query, setQuery] = useState(''); const [category, setCategory] = useState('All'); const [showAdd, setShowAdd] = useState(false); const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) && (category === 'All' || p.category === category)); return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-emerald-300">Control centre</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Inventory</h1><p className="mt-2 text-sm text-slate-400">Know what’s moving before the shelves do.</p></div><button onClick={() => setShowAdd(true)} className="button-primary"><PackagePlus size={17} /> Add product</button></div><div className="panel overflow-hidden"><div className="flex flex-col gap-4 border-b border-white/5 p-4 lg:flex-row lg:items-center lg:justify-between"><div className="relative w-full max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} /><input value={query} onChange={e => setQuery(e.target.value)} className="field pl-10" placeholder="Search products" /></div><div className="flex gap-2 overflow-x-auto">{categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>{item}</button>)}</div></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4 font-medium">Product</th><th className="px-5 py-4 font-medium">Category</th><th className="px-5 py-4 font-medium">Selling price</th><th className="px-5 py-4 font-medium">In stock</th><th className="px-5 py-4 font-medium">Status</th></tr></thead><tbody>{filtered.map(p => { const low = p.stockQuantity <= p.reorderThreshold; return <tr key={p.id} className="border-t border-white/5 transition hover:bg-white/[0.025]"><td className="px-5 py-4"><p className="font-medium text-slate-200">{p.name}</p><p className="mt-1 text-xs text-slate-500">Per {p.unit}</p></td><td className="px-5 py-4 text-slate-400">{p.category}</td><td className="px-5 py-4 font-medium text-slate-200">{money.format(p.sellingPrice)}</td><td className="px-5 py-4 text-slate-300">{p.stockQuantity}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${low ? 'bg-orange-400/10 text-orange-300' : 'bg-emerald-400/10 text-emerald-300'}`}>{low ? 'Reorder soon' : 'Healthy'}</span></td></tr>; })}</tbody></table>{!filtered.length && <div className="p-12 text-center text-sm text-slate-500">No products match that search.</div>}</div></div>{showAdd && <AddProduct onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); refresh(); }} />}</div>; }
 
-function Pos({ products, refresh }: { products: Product[]; refresh: () => void }) { const [category, setCategory] = useState('All'); const [cart, setCart] = useState<CartItem[]>([]); const [tab, setTab] = useState('Table 4'); const [message, setMessage] = useState(''); const visible = products.filter(p => category === 'All' || p.category === category); const subtotal = cart.reduce((s, p) => s + p.sellingPrice * p.quantity, 0); const vat = subtotal * .075; const total = subtotal + vat; function add(p: Product) { setCart(items => items.some(i => i.id === p.id) ? items.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i) : [...items, { ...p, quantity: 1 }]); } async function checkout() { if (!cart.length) return; try { const { order } = await api.orders.create({ tabName: tab, items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.sellingPrice })) }); await api.orders.checkout(order.id, { paymentMethod: 'cash' }); setCart([]); setMessage('Order paid and tab closed'); refresh(); setTimeout(() => setMessage(''), 3000); } catch (err) { setMessage(err instanceof Error ? err.message : 'Unable to complete order'); } } return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-emerald-300">Service floor</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Point of sale</h1><p className="mt-2 text-sm text-slate-400">Tap a product to add it to the open tab.</p></div><div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1"><span className="px-3 text-xs text-slate-500">Open tab</span><input value={tab} onChange={e => setTab(e.target.value)} className="w-24 bg-transparent px-2 py-2 text-sm text-white outline-none" /></div></div><div className="grid gap-6 xl:grid-cols-[1fr_360px]"><div><div className="mb-5 flex gap-2 overflow-x-auto">{categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>{item}</button>)}</div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{visible.map(p => <button key={p.id} onClick={() => add(p)} disabled={!p.stockQuantity} className="panel group p-4 text-left transition hover:-translate-y-0.5 hover:border-emerald-400/40 disabled:opacity-40"><div className="mb-7 flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-emerald-300"><Beer size={17} /></span><span className="text-[11px] text-slate-500">{p.stockQuantity} left</span></div><p className="text-sm font-medium text-slate-200">{p.name}</p><p className="mt-1 text-sm font-semibold text-emerald-300">{money.format(p.sellingPrice)}</p></button>)}</div></div><div className="panel h-fit p-5 xl:sticky xl:top-6"><div className="flex items-center justify-between border-b border-white/5 pb-5"><div><h2 className="font-semibold text-white">{tab}</h2><p className="mt-1 text-xs text-slate-500">{cart.length} line items</p></div><button onClick={() => setCart([])} className="text-xs text-slate-500 hover:text-white">Clear</button></div><div className="min-h-[220px] py-4">{cart.length ? cart.map(item => <div key={item.id} className="mb-4 flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm text-slate-200">{item.name}</p><p className="mt-1 text-xs text-slate-500">{item.quantity} × {money.format(item.sellingPrice)}</p></div><div className="flex items-center gap-2"><button onClick={() => setCart(items => items.flatMap(i => i.id === item.id ? (i.quantity > 1 ? [{ ...i, quantity: i.quantity - 1 }] : []) : [i]))} className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-slate-300">−</button><span className="w-4 text-center text-sm text-white">{item.quantity}</span><button onClick={() => add(item)} className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-slate-300">+</button></div></div>) : <div className="flex h-[220px] flex-col items-center justify-center text-center"><ShoppingCart size={28} className="text-slate-700" /><p className="mt-3 text-sm text-slate-500">Your tab is empty</p><p className="mt-1 text-xs text-slate-600">Choose products from the menu</p></div>}</div><div className="space-y-3 border-t border-white/5 pt-5 text-sm"><div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{money.format(subtotal)}</span></div><div className="flex justify-between text-slate-400"><span>VAT <span className="text-xs text-slate-600">7.5%</span></span><span>{money.format(vat)}</span></div><div className="flex justify-between pt-2 text-lg font-semibold text-white"><span>Total</span><span>{money.format(total)}</span></div><button onClick={checkout} disabled={!cart.length} className="button-primary mt-3 w-full">Charge {money.format(total)} <ChevronRight size={17} /></button></div></div></div>{message && <div className="fixed bottom-6 right-6 rounded-xl border border-emerald-400/30 bg-[#11372b] px-5 py-4 text-sm text-emerald-200 shadow-xl">{message}</div>}</div>; }
+function Pos({ products, refresh }: { products: Product[]; refresh: () => void }) {
+  const [category, setCategory] = useState('All');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [tab, setTab] = useState('Table 4');
+  const [message, setMessage] = useState('');
+  const [printReceiptOnCheckout, setPrintReceiptOnCheckout] = useState(true);
+  const [receiptToPrint, setReceiptToPrint] = useState<any | null>(null);
+  const [isSimulatingPrint, setIsSimulatingPrint] = useState(false);
+
+  const visible = products.filter(p => category === 'All' || p.category === category);
+  const subtotal = cart.reduce((s, p) => s + p.sellingPrice * p.quantity, 0);
+  const vat = subtotal * .075;
+  const total = subtotal + vat;
+
+  function add(p: Product) {
+    setCart(items => items.some(i => i.id === p.id) ? items.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i) : [...items, { ...p, quantity: 1 }]);
+  }
+
+  async function checkout() {
+    if (!cart.length) return;
+    try {
+      const { order } = await api.orders.create({ tabName: tab, items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.sellingPrice })) });
+      await api.orders.checkout(order.id, { paymentMethod: 'cash' });
+
+      const fullOrder = {
+        ...order,
+        subtotal,
+        vat,
+        total,
+        discount: order.discount || 0,
+        items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.sellingPrice }))
+      };
+
+      setCart([]);
+      if (printReceiptOnCheckout) {
+        setReceiptToPrint(fullOrder);
+      } else {
+        setMessage('Order paid and tab closed');
+        setTimeout(() => setMessage(''), 3000);
+      }
+      refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Unable to complete order');
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm text-emerald-300">Service floor</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Point of sale</h1>
+          <p className="mt-2 text-sm text-slate-400">Tap a product to add it to the open tab.</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          <span className="px-3 text-xs text-slate-500">Open tab</span>
+          <input value={tab} onChange={e => setTab(e.target.value)} className="w-24 bg-transparent px-2 py-2 text-sm text-white outline-none" />
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div>
+          <div className="mb-5 flex gap-2 overflow-x-auto">
+            {categories.map(item => (
+              <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {visible.map(p => (
+              <button key={p.id} onClick={() => add(p)} disabled={!p.stockQuantity} className="panel group p-4 text-left transition hover:-translate-y-0.5 hover:border-emerald-400/40 disabled:opacity-40">
+                <div className="mb-7 flex items-start justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-emerald-300"><Beer size={17} /></span>
+                  <span className="text-[11px] text-slate-500">{p.stockQuantity} left</span>
+                </div>
+                <p className="text-sm font-medium text-slate-200">{p.name}</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-300">{money.format(p.sellingPrice)}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel h-fit p-5 xl:sticky xl:top-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-5">
+            <div>
+              <h2 className="font-semibold text-white">{tab}</h2>
+              <p className="mt-1 text-xs text-slate-500">{cart.length} line items</p>
+            </div>
+            <button onClick={() => setCart([])} className="text-xs text-slate-500 hover:text-white">Clear</button>
+          </div>
+          <div className="min-h-[220px] py-4">
+            {cart.length ? (
+              cart.map(item => (
+                <div key={item.id} className="mb-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-slate-200">{item.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.quantity} × {money.format(item.sellingPrice)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setCart(items => items.flatMap(i => i.id === item.id ? (i.quantity > 1 ? [{ ...i, quantity: i.quantity - 1 }] : []) : [i]))} className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-slate-300">−</button>
+                    <span className="w-4 text-center text-sm text-white">{item.quantity}</span>
+                    <button onClick={() => add(item)} className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-slate-300">+</button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-[220px] flex-col items-center justify-center text-center">
+                <ShoppingCart size={28} className="text-slate-700" />
+                <p className="mt-3 text-sm text-slate-500">Your tab is empty</p>
+                <p className="mt-1 text-xs text-slate-600">Choose products from the menu</p>
+              </div>
+            )}
+          </div>
+          <div className="space-y-3 border-t border-white/5 pt-5 text-sm">
+            <div className="flex justify-between text-slate-400">
+              <span>Subtotal</span>
+              <span>{money.format(subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>VAT <span className="text-xs text-slate-600">7.5%</span></span>
+              <span>{money.format(vat)}</span>
+            </div>
+            <div className="flex justify-between pt-2 text-lg font-semibold text-white">
+              <span>Total</span>
+              <span>{money.format(total)}</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-2 pb-1 text-slate-400">
+              <input
+                type="checkbox"
+                id="printReceipt"
+                checked={printReceiptOnCheckout}
+                onChange={(e) => setPrintReceiptOnCheckout(e.target.checked)}
+                className="h-4 w-4 rounded border-white/10 bg-white/5 text-emerald-500 accent-emerald-400 focus:ring-0 cursor-pointer"
+              />
+              <label htmlFor="printReceipt" className="text-xs font-medium cursor-pointer">
+                Print receipt on checkout
+              </label>
+            </div>
+
+            <button onClick={checkout} disabled={!cart.length} className="button-primary mt-1 w-full">
+              Charge {money.format(total)} <ChevronRight size={17} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {message && <div className="fixed bottom-6 right-6 rounded-xl border border-emerald-400/30 bg-[#11372b] px-5 py-4 text-sm text-emerald-200 shadow-xl">{message}</div>}
+
+      {/* On-Screen High-Fidelity Receipt Modal */}
+      {receiptToPrint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0c1a17] p-6 shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Order Receipt</h3>
+                <p className="text-xs text-slate-400">Checkout completed successfully.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptToPrint(null)}
+                className="text-slate-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Simulated Thermal Receipt */}
+            <div className="bg-white text-slate-900 p-5 rounded-lg shadow-inner font-mono text-xs leading-relaxed max-h-[350px] overflow-y-auto relative">
+              {isSimulatingPrint && (
+                <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center text-emerald-600 font-sans font-semibold text-center z-10">
+                  <span className="animate-bounce text-xl">🖨️</span>
+                  <p className="mt-2 text-sm text-slate-800">Printing receipt...</p>
+                  <div className="w-24 h-1 bg-slate-200 rounded-full mt-2 overflow-hidden">
+                    <div className="h-full bg-emerald-500 animate-[pulse_1s_infinite] w-full" />
+                  </div>
+                </div>
+              )}
+
+              <div className="text-center font-bold text-sm">MALT & LIME BAR</div>
+              <div className="text-center">LAGOS OPERATIONS</div>
+              <div className="text-center text-[10px]">12 Admiralty Way, Lekki Phase 1</div>
+              <div className="text-center text-[10px]">Lagos, Nigeria</div>
+              <div className="border-b border-dashed border-slate-300 my-3" />
+              <div className="flex justify-between">
+                <span>Date:</span>
+                <span>{new Date(receiptToPrint.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tab:</span>
+                <span>{receiptToPrint.tabName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Ref:</span>
+                <span className="truncate max-w-[120px]">{receiptToPrint.id}</span>
+              </div>
+              <div className="border-b border-dashed border-slate-300 my-3" />
+              <div className="font-bold mb-1">ITEMS:</div>
+              {receiptToPrint.items.map((item: any, idx: number) => (
+                <div key={idx} className="mb-1">
+                  <div className="flex justify-between">
+                    <span>{item.name}</span>
+                    <span>{item.quantity}x</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-500 pl-2">
+                    <span>@{money.format(item.unitPrice)}</span>
+                    <span>{money.format(item.unitPrice * item.quantity)}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="border-b border-dashed border-slate-300 my-3" />
+              <div className="flex justify-between">
+                <span>SUBTOTAL:</span>
+                <span>{money.format(receiptToPrint.subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>VAT (7.5%):</span>
+                <span>{money.format(receiptToPrint.vat)}</span>
+              </div>
+              {receiptToPrint.discount > 0 && (
+                <div className="flex justify-between">
+                  <span>DISCOUNT:</span>
+                  <span>-{money.format(receiptToPrint.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-sm border-t border-dashed border-slate-300 pt-1.5 mt-1.5">
+                <span>TOTAL:</span>
+                <span>{money.format(receiptToPrint.total)}</span>
+              </div>
+              <div className="border-b border-dashed border-slate-300 my-3" />
+              <div className="text-center font-semibold text-[10px]">PAID VIA CASH</div>
+              <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-5 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                }}
+                className="w-full button-primary flex items-center justify-center gap-2"
+              >
+                🖨️ Print Receipt (System Dialog)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSimulatingPrint(true);
+                  setTimeout(() => {
+                    setIsSimulatingPrint(false);
+                    alert("🔔 Receipt print command simulated and completed successfully!");
+                  }, 1500);
+                }}
+                className="w-full inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-500"
+              >
+                ⚡ Simulate Thermal Printer
+              </button>
+              <button
+                type="button"
+                onClick={() => setReceiptToPrint(null)}
+                className="w-full inline-flex h-11 items-center justify-center rounded-xl bg-white/[0.04] px-4 text-sm font-semibold text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
+              >
+                Close & Next Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden print-only container rendered into the DOM */}
+      {receiptToPrint && (
+        <div className="hidden print:block bg-white text-black p-6 font-mono text-xs w-[72mm] mx-auto leading-relaxed">
+          <div className="text-center font-bold text-sm">MALT & LIME BAR</div>
+          <div className="text-center">LAGOS OPERATIONS</div>
+          <div className="text-center text-[10px]">12 Admiralty Way, Lekki Phase 1</div>
+          <div className="text-center text-[10px]">Lagos, Nigeria</div>
+          <div className="border-b border-dashed border-black my-3" />
+          <div className="flex justify-between">
+            <span>Date:</span>
+            <span>{new Date(receiptToPrint.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Tab:</span>
+            <span>{receiptToPrint.tabName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Ref:</span>
+            <span className="truncate max-w-[120px]">{receiptToPrint.id}</span>
+          </div>
+          <div className="border-b border-dashed border-black my-3" />
+          <div className="font-bold mb-1">ITEMS:</div>
+          {receiptToPrint.items.map((item: any, idx: number) => (
+            <div key={idx} className="mb-1">
+              <div className="flex justify-between">
+                <span>{item.name}</span>
+                <span>{item.quantity}x</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-500 pl-2">
+                <span>@{money.format(item.unitPrice)}</span>
+                <span>{money.format(item.unitPrice * item.quantity)}</span>
+              </div>
+            </div>
+          ))}
+          <div className="border-b border-dashed border-black my-3" />
+          <div className="flex justify-between text-[11px]">
+            <span>SUBTOTAL:</span>
+            <span>{money.format(receiptToPrint.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span>VAT (7.5%):</span>
+            <span>{money.format(receiptToPrint.vat)}</span>
+          </div>
+          {receiptToPrint.discount > 0 && (
+            <div className="flex justify-between text-[11px]">
+              <span>DISCOUNT:</span>
+              <span>-{money.format(receiptToPrint.discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-sm border-t border-dashed border-black pt-1.5 mt-1.5">
+            <span>TOTAL:</span>
+            <span>{money.format(receiptToPrint.total)}</span>
+          </div>
+          <div className="border-b border-dashed border-black my-3" />
+          <div className="text-center font-semibold">PAID VIA CASH</div>
+          <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>
+          <div className="text-center text-[9px] text-gray-500">Malt & Lime - Lagos hospitality rhythm</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Placeholder({ title, text, icon: Icon }: { title: string; text: string; icon: typeof BarChart3 }) { return <div className="flex min-h-[520px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300"><Icon size={24} /></div><h1 className="mt-5 text-2xl font-semibold text-white">{title}</h1><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{text}</p></div>; }
 
@@ -79,7 +411,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#07110f] text-white">
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between">
           <Logo />
           <button onClick={() => setMobile(false)} className="text-slate-500 lg:hidden"><X size={19} /></button>
@@ -115,8 +447,8 @@ export default function Home() {
         </div>
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="flex h-20 items-center justify-between border-b border-white/5 px-5 sm:px-8">
+      <div className="lg:pl-64 print:pl-0">
+        <header className="print:hidden flex h-20 items-center justify-between border-b border-white/5 px-5 sm:px-8">
           <button onClick={() => setMobile(true)} className="text-slate-400 lg:hidden"><Menu size={21} /></button>
           <div className="hidden text-sm text-slate-500 sm:block">
             Malt & Lime <span className="mx-2 text-slate-700">/</span> {view === 'settings' ? 'Settings' : nav.find(n => n.id === view)?.label}
@@ -131,7 +463,7 @@ export default function Home() {
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] p-5 sm:p-8">{content}</main>
+        <main className="mx-auto max-w-[1500px] p-5 sm:p-8 print:p-0">{content}</main>
       </div>
     </div>
   );

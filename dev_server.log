@@ -1,0 +1,51 @@
+
+> nextjs@0.1.0 dev
+> next dev
+
+  ▲ Next.js 13.5.1
+  - Local:        http://localhost:3000
+
+ ✓ Ready in 1707ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ○ compiling /page ...
+ ✓ Compiled /page in 5.5s (521 modules)
+
+ ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ✓ Compiled in 1234ms (266 modules)
+ ✓ Compiled /not-found in 1357ms (501 modules)
+
+ ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:122:9)
+    at process.exit (node:internal/process/per_thread:235:24)
+    at process.cleanup (/app/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:531:35)
+    at Signal.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:122:9)
+    at process.exit (node:internal/process/per_thread:235:24)
+    at process.cleanup (/app/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:531:35)
+    at Signal.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ X uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:122:9)
+    at process.exit (node:internal/process/per_thread:235:24)
+    at process.cleanup (/app/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:531:35)
+    at Signal.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ X uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:122:9)
+    at process.exit (node:internal/process/per_thread:235:24)
+    at process.cleanup (/app/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:531:35)
+    at Signal.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
