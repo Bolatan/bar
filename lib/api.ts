@@ -6,7 +6,8 @@ let accessToken: Token = null;
 let refreshToken: Token = null;
 
 const STORAGE_KEY = 'ml_auth';
-const OFFLINE_PRODUCTS: Product[] = [
+
+const DEFAULT_OFFLINE_PRODUCTS: Product[] = [
   { id: 'offline-star', name: 'Star Lager', category: 'Beer', unit: 'bottle', costPrice: 650, sellingPrice: 1500, stockQuantity: 84, reorderThreshold: 24, isActive: true },
   { id: 'offline-gulder', name: 'Gulder Lager', category: 'Beer', unit: 'bottle', costPrice: 700, sellingPrice: 1600, stockQuantity: 42, reorderThreshold: 18, isActive: true },
   { id: 'offline-guinness', name: 'Guinness Foreign Extra', category: 'Beer', unit: 'bottle', costPrice: 900, sellingPrice: 2200, stockQuantity: 29, reorderThreshold: 12, isActive: true },
@@ -16,14 +17,56 @@ const OFFLINE_PRODUCTS: Product[] = [
   { id: 'offline-wings', name: 'Chicken Wings', category: 'Food', unit: 'plate', costPrice: 2200, sellingPrice: 6500, stockQuantity: 9, reorderThreshold: 5, isActive: true },
   { id: 'offline-water', name: 'Bottle Water', category: 'Soft Drinks', unit: 'bottle', costPrice: 200, sellingPrice: 700, stockQuantity: 72, reorderThreshold: 24, isActive: true },
 ];
-const OFFLINE_ORDERS: Order[] = [];
-const OFFLINE_USERS: Record<string, Profile> = {
+
+const DEFAULT_OFFLINE_USERS: Record<string, Profile> = {
   'owner@maltlime.ng': { id: 'offline-owner', name: 'Owner', email: 'owner@maltlime.ng', role: 'owner' },
   'manager@maltlime.ng': { id: 'offline-manager', name: 'Manager', email: 'manager@maltlime.ng', role: 'manager' },
   'staff@maltlime.ng': { id: 'offline-staff', name: 'Staff', email: 'staff@maltlime.ng', role: 'staff' },
 };
+
+let OFFLINE_PRODUCTS: Product[] = [];
+let OFFLINE_ORDERS: Order[] = [];
+let OFFLINE_USERS: Record<string, Profile> = {};
 let OFFLINE_SHIFTS: Shift[] = [];
 let OFFLINE_CURRENT_SHIFT: Shift | null = null;
+
+if (typeof window !== 'undefined') {
+  try {
+    OFFLINE_PRODUCTS = JSON.parse(localStorage.getItem('ml_offline_products') || 'null') || DEFAULT_OFFLINE_PRODUCTS;
+    OFFLINE_ORDERS = JSON.parse(localStorage.getItem('ml_offline_orders') || 'null') || [];
+    OFFLINE_USERS = JSON.parse(localStorage.getItem('ml_offline_users') || 'null') || DEFAULT_OFFLINE_USERS;
+    OFFLINE_SHIFTS = JSON.parse(localStorage.getItem('ml_offline_shifts') || 'null') || [];
+    OFFLINE_CURRENT_SHIFT = JSON.parse(localStorage.getItem('ml_offline_current_shift') || 'null') || null;
+  } catch {
+    OFFLINE_PRODUCTS = DEFAULT_OFFLINE_PRODUCTS;
+    OFFLINE_ORDERS = [];
+    OFFLINE_USERS = DEFAULT_OFFLINE_USERS;
+    OFFLINE_SHIFTS = [];
+    OFFLINE_CURRENT_SHIFT = null;
+  }
+} else {
+  OFFLINE_PRODUCTS = DEFAULT_OFFLINE_PRODUCTS;
+  OFFLINE_ORDERS = [];
+  OFFLINE_USERS = DEFAULT_OFFLINE_USERS;
+  OFFLINE_SHIFTS = [];
+  OFFLINE_CURRENT_SHIFT = null;
+}
+
+function saveOfflineProducts() {
+  if (typeof window !== 'undefined') localStorage.setItem('ml_offline_products', JSON.stringify(OFFLINE_PRODUCTS));
+}
+function saveOfflineOrders() {
+  if (typeof window !== 'undefined') localStorage.setItem('ml_offline_orders', JSON.stringify(OFFLINE_ORDERS));
+}
+function saveOfflineUsers() {
+  if (typeof window !== 'undefined') localStorage.setItem('ml_offline_users', JSON.stringify(OFFLINE_USERS));
+}
+function saveOfflineShifts() {
+  if (typeof window !== 'undefined') localStorage.setItem('ml_offline_shifts', JSON.stringify(OFFLINE_SHIFTS));
+}
+function saveOfflineCurrentShift() {
+  if (typeof window !== 'undefined') localStorage.setItem('ml_offline_current_shift', JSON.stringify(OFFLINE_CURRENT_SHIFT));
+}
 let offlineMode = false;
 let offlineUser: Profile | null = null;
 
@@ -179,6 +222,8 @@ export const api = {
           const user = { id: `offline-user-${Date.now()}`, name, email, role: 'staff' as const };
           offlineMode = true;
           offlineUser = user;
+          OFFLINE_USERS[email.toLowerCase()] = user;
+          saveOfflineUsers();
           return { token: `offline-token-${user.id}`, refreshToken: `offline-refresh-${user.id}`, user };
         }
         throw error;
@@ -235,16 +280,37 @@ export const api = {
     },
     create: async (data: Partial<Product>) => {
       if (offlineMode) {
-        const product = { ...OFFLINE_PRODUCTS[0], ...data, id: `offline-${Date.now()}` } as Product;
+        const product = { ...data, id: `offline-${Date.now()}`, isActive: true } as Product;
         OFFLINE_PRODUCTS.push(product);
+        saveOfflineProducts();
         return { product };
       }
       return apiFetch<{ product: Product }>('/products', { method: 'POST', body: JSON.stringify(data) });
     },
-    update: (id: string, data: Partial<Product>) =>
-      apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    remove: (id: string) =>
-      apiFetch<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
+    update: async (id: string, data: Partial<Product>) => {
+      if (offlineMode) {
+        const idx = OFFLINE_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          OFFLINE_PRODUCTS[idx] = { ...OFFLINE_PRODUCTS[idx], ...data } as Product;
+          saveOfflineProducts();
+          return { product: OFFLINE_PRODUCTS[idx] };
+        }
+        throw new ApiError('Product not found', 404);
+      }
+      return apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    remove: async (id: string) => {
+      if (offlineMode) {
+        const idx = OFFLINE_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          OFFLINE_PRODUCTS.splice(idx, 1);
+          saveOfflineProducts();
+          return { message: 'Product deactivated' };
+        }
+        throw new ApiError('Product not found', 404);
+      }
+      return apiFetch<{ message: string }>(`/products/${id}`, { method: 'DELETE' });
+    },
   },
   suppliers: {
     list: () => apiFetch<{ suppliers: Supplier[] }>('/suppliers'),
@@ -280,6 +346,7 @@ export const api = {
         const subtotal = data.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
         const order = { id: `offline-order-${Date.now()}`, tabName: data.tabName || 'Counter', items: data.items, subtotal, vat: 0, discount: 0, total: subtotal, paymentMethod: null, status: 'open', createdAt: new Date().toISOString() } as Order;
         OFFLINE_ORDERS.unshift(order);
+        saveOfflineOrders();
         return { order };
       }
       return apiFetch<{ order: Order }>('/orders', { method: 'POST', body: JSON.stringify(data) });
@@ -295,6 +362,7 @@ export const api = {
         order.paymentMethod = data.paymentMethod;
         order.status = 'paid';
         order.paidAt = new Date().toISOString();
+        saveOfflineOrders();
         return { order };
       }
       return apiFetch<{ order: Order }>(`/orders/${id}/checkout`, { method: 'POST', body: JSON.stringify(data) });
@@ -338,6 +406,7 @@ export const api = {
           closedAt: null
         } as Shift;
         OFFLINE_CURRENT_SHIFT = shift;
+        saveOfflineCurrentShift();
         return { shift };
       }
       try {
@@ -356,6 +425,7 @@ export const api = {
             closedAt: null
           } as Shift;
           OFFLINE_CURRENT_SHIFT = shift;
+          saveOfflineCurrentShift();
           return { shift };
         }
         throw error;
@@ -377,6 +447,8 @@ export const api = {
         shift.closedAt = new Date().toISOString();
         OFFLINE_SHIFTS.unshift(shift);
         OFFLINE_CURRENT_SHIFT = null;
+        saveOfflineShifts();
+        saveOfflineCurrentShift();
         return { shift };
       }
       try {
@@ -398,6 +470,8 @@ export const api = {
           shift.closedAt = new Date().toISOString();
           OFFLINE_SHIFTS.unshift(shift);
           OFFLINE_CURRENT_SHIFT = null;
+          saveOfflineShifts();
+          saveOfflineCurrentShift();
           return { shift };
         }
         throw error;
@@ -502,6 +576,7 @@ export const api = {
         const id = `offline-user-${Date.now()}`;
         const user = { id, name: data.name || '', email: data.email || '', role: data.role || 'staff', phone: data.phone } as Profile;
         OFFLINE_USERS[data.email?.toLowerCase() || ''] = user;
+        saveOfflineUsers();
         return { user };
       }
       return apiFetch<{ user: Profile }>('/users', { method: 'POST', body: JSON.stringify(data) });
@@ -511,6 +586,7 @@ export const api = {
         const email = Object.keys(OFFLINE_USERS).find(key => OFFLINE_USERS[key].id === id);
         if (email) {
           OFFLINE_USERS[email] = { ...OFFLINE_USERS[email], ...data } as Profile;
+          saveOfflineUsers();
           return { user: OFFLINE_USERS[email] };
         }
         throw new ApiError('User not found', 404);
@@ -522,6 +598,7 @@ export const api = {
         const email = Object.keys(OFFLINE_USERS).find(key => OFFLINE_USERS[key].id === id);
         if (email) {
           delete OFFLINE_USERS[email];
+          saveOfflineUsers();
           return { message: 'User deleted' };
         }
         throw new ApiError('User not found', 404);
