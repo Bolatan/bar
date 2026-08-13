@@ -2,13 +2,15 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 
 function signToken(user) {
-  return jwt.sign({ sub: user._id.toHexString(), role: user.role }, config.jwtSecret, {
+  const userId = typeof user._id.toHexString === 'function' ? user._id.toHexString() : user._id.toString();
+  return jwt.sign({ sub: userId, role: user.role }, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn,
   });
 }
 
 function signRefreshToken(user) {
-  return jwt.sign({ sub: user._id.toHexString() }, config.jwtRefreshSecret, {
+  const userId = typeof user._id.toHexString === 'function' ? user._id.toHexString() : user._id.toString();
+  return jwt.sign({ sub: userId }, config.jwtRefreshSecret, {
     expiresIn: config.jwtRefreshExpiresIn,
   });
 }

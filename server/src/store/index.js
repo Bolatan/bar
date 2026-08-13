@@ -367,6 +367,28 @@ const store = {
     memory.auditLogs.push(log);
     return log;
   },
+  async findAuditLogs() {
+    if (isMongo()) {
+      const AuditLog = require('../models/AuditLog');
+      return AuditLog.find()
+        .populate('userId', 'name role')
+        .sort({ createdAt: -1 });
+    }
+    return [...memory.auditLogs].map(log => {
+      const populatedLog = { ...log };
+      if (log.userId) {
+        const user = memory.users.find(u => u._id === log.userId);
+        if (user) {
+          populatedLog.userId = { id: user._id, name: user.name, role: user.role };
+        }
+      }
+      return {
+        ...populatedLog,
+        id: log._id,
+        toJSON() { return this; }
+      };
+    }).sort((a, b) => b.createdAt - a.createdAt);
+  },
 };
 
 module.exports = { store, setMongoConnected, isMongo, seedMemory };

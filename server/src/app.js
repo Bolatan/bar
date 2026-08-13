@@ -32,6 +32,7 @@ if (config.nodeEnv !== 'test') {
 
 app.use('/api/auth', auth, require('./routes/auth'));
 app.use('/api/users', auth, require('./routes/users'));
+app.use('/api/audit-logs', auth, require('./routes/auditLogs'));
 app.use('/api/products', auth, require('./routes/products'));
 app.use('/api/suppliers', auth, require('./routes/suppliers'));
 app.use('/api/stock-movements', auth, require('./routes/stock'));
