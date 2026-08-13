@@ -75,6 +75,10 @@ const checkout = z.object({
   paymentMethod: z.enum(['cash', 'card', 'transfer', 'split']),
   paymentRef: z.string().optional(),
   discount: z.number().min(0).optional(),
+  customerEmail: z.string().email().optional().or(z.literal('')),
+  customerPhone: z.string().optional().or(z.literal('')),
+  marketingConsentEmail: z.boolean().optional(),
+  marketingConsentWhatsApp: z.boolean().optional(),
 });
 
 const voidOrder = z.object({

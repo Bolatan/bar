@@ -25,6 +25,10 @@ const orderSchema = new mongoose.Schema(
     voidReason: { type: String, trim: true, default: null },
     voidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     paidAt: { type: Date, default: null },
+    customerEmail: { type: String, trim: true, default: null },
+    customerPhone: { type: String, trim: true, default: null },
+    marketingConsentEmail: { type: Boolean, default: false },
+    marketingConsentWhatsApp: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
