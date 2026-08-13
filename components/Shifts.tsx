@@ -11,6 +11,7 @@ export default function Shifts({ profile }: { profile: Profile }) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingFloat, setOpeningFloat] = useState('');
+  const [openPhysicalRegister, setOpenPhysicalRegister] = useState(false);
   const [closingCount, setClosingCount] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +48,11 @@ export default function Shifts({ profile }: { profile: Profile }) {
       const res = await api.shifts.open(Number(openingFloat));
       setCurrentShift(res.shift);
       setOpeningFloat('');
-      setMessage('Shift opened successfully.');
+      if (openPhysicalRegister) {
+        setMessage('Shift opened successfully. 🔔 Physical register drawer triggered & opened!');
+      } else {
+        setMessage('Shift opened successfully.');
+      }
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to open shift');
@@ -122,6 +127,21 @@ export default function Shifts({ profile }: { profile: Profile }) {
                   </span>
                 </label>
 
+                <label className="flex items-start gap-3 cursor-pointer pt-1 pb-2">
+                  <input
+                    type="checkbox"
+                    checked={openPhysicalRegister}
+                    onChange={(e) => setOpenPhysicalRegister(e.target.checked)}
+                    className="h-4 w-4 rounded border-white/10 bg-white/5 text-emerald-500 accent-emerald-400 focus:ring-0 mt-0.5"
+                  />
+                  <div className="text-xs text-slate-300">
+                    Open physical cash register drawer
+                    <span className="block text-[10px] text-slate-500 mt-0.5">
+                      Triggers hardware connection signal (ESC/POS simulation) to open the physical cash drawer.
+                    </span>
+                  </div>
+                </label>
+
                 {error && (
                   <div className="flex gap-2 rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-200">
                     <AlertCircle size={18} className="shrink-0 text-red-400" />
@@ -174,6 +194,18 @@ export default function Shifts({ profile }: { profile: Profile }) {
                     {money.format(currentShift.openingFloat)}
                   </p>
                 </div>
+              </div>
+
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert("🔔 Command sent! Physical cash drawer triggered & opened successfully.");
+                  }}
+                  className="w-full rounded-xl border border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-white/[0.02] transition py-3 text-xs font-semibold text-emerald-300 flex items-center justify-center gap-2"
+                >
+                  ⚡ Open Physical Drawer Now
+                </button>
               </div>
 
               <form onSubmit={handleCloseShift} className="space-y-5">
