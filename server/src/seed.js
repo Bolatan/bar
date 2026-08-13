@@ -9,7 +9,7 @@ const Product = require('./models/Product');
 
 const suppliers = [
   { name: 'Premium Drinks Distributors', contactPerson: 'Chinedu Okafor', phone: '0803 555 0142', email: 'orders@premiumdrinks.ng', address: 'Ikeja, Lagos' },
-  { name: 'Fresh Bites Wholesale', contactPerson: 'Amaka Bello', phone: '0816 222 9087', email: 'hello@freshbites.ng', address: 'Yaba, Lagos' },
+  { name: 'Fresh Bites Wholesale', contactPerson: 'Amaka Bello', phone: '0816 222 9087', email: 'hello@freshbites.ng', address: 'Wuse II, Abuja' },
 ];
 
 const products = [
