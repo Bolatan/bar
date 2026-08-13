@@ -241,10 +241,28 @@ export const api = {
       }
       return apiFetch<{ product: Product }>('/products', { method: 'POST', body: JSON.stringify(data) });
     },
-    update: (id: string, data: Partial<Product>) =>
-      apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    remove: (id: string) =>
-      apiFetch<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
+    update: async (id: string, data: Partial<Product>) => {
+      if (offlineMode) {
+        const idx = OFFLINE_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          OFFLINE_PRODUCTS[idx] = { ...OFFLINE_PRODUCTS[idx], ...data } as Product;
+          return { product: OFFLINE_PRODUCTS[idx] };
+        }
+        throw new ApiError('Product not found', 404);
+      }
+      return apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    remove: async (id: string) => {
+      if (offlineMode) {
+        const idx = OFFLINE_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          OFFLINE_PRODUCTS[idx].isActive = false;
+          return { message: 'Product deactivated' };
+        }
+        throw new ApiError('Product not found', 404);
+      }
+      return apiFetch<{ message: string }>(`/products/${id}`, { method: 'DELETE' });
+    },
   },
   suppliers: {
     list: () => apiFetch<{ suppliers: Supplier[] }>('/suppliers'),

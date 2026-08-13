@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
+import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, Eye, EyeOff, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
@@ -17,18 +17,506 @@ const nav = [{ id: 'dashboard' as View, label: 'Overview', icon: BarChart3 }, { 
 function Logo() { return <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950"><Beer size={21} /></div><div><div className="text-[15px] font-bold tracking-tight text-white">Malt & Lime</div><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Lagos operations</div></div></div>; }
 
 function AuthScreen({ onAuth }: { onAuth: (user: Profile, token: string, refreshToken: string) => void }) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login'); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setError(''); setBusy(true); try { const result = mode === 'login' ? await api.auth.login(email, password) : await api.auth.register(name, email, password); if (!result.user) throw new Error('Unable to sign in'); onAuth(result.user, result.token, result.refreshToken); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to sign in'); } finally { setBusy(false); } }
-  return <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white"><div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"><div className="relative hidden overflow-hidden p-12 lg:block"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" /><div className="relative flex h-full flex-col justify-between"><Logo /><div><p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p><h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1><p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Sparkles size={16} className="text-emerald-300" /> Designed for the Lagos hospitality rhythm</div></div></div><div className="p-8 sm:p-12"><div className="mb-12 lg:hidden"><Logo /></div><div className="mb-8"><p className="mb-3 text-sm text-emerald-300">Welcome back</p><h2 className="text-3xl font-semibold tracking-tight">{mode === 'login' ? 'Sign in to your bar' : 'Create your account'}</h2><p className="mt-2 text-sm text-slate-400">{mode === 'login' ? 'Pick up where the shift left off.' : 'New accounts start as staff.'}</p></div><form onSubmit={submit} className="space-y-5">{mode === 'signup' && <label className="block text-sm text-slate-300">Full name<input value={name} onChange={e => setName(e.target.value)} required className="field mt-2" placeholder="Amaka Bello" /></label>}<label className="block text-sm text-slate-300">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" /></label><label className="block text-sm text-slate-300">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="field mt-2" placeholder="At least 6 characters" /></label>{error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}<button disabled={busy} className="button-primary w-full">{busy ? 'Please wait…' : mode === 'login' ? 'Enter workspace' : 'Create account'}<ChevronRight size={17} /></button></form><button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="mt-6 w-full text-sm text-slate-400 transition hover:text-white">{mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}</button></div></div></main>;
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const result = mode === 'login' ? await api.auth.login(email, password) : await api.auth.register(name, email, password);
+      if (!result.user) throw new Error('Unable to sign in');
+      onAuth(result.user, result.token, result.refreshToken);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#07110f] px-6 py-12 text-white">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1a17] shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative hidden overflow-hidden p-12 lg:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(52,211,153,.28),transparent_36%),linear-gradient(145deg,#123d31,#07110f_70%)]" />
+          <div className="relative flex h-full flex-col justify-between">
+            <Logo />
+            <div>
+              <p className="mb-5 text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">Built for busy nights</p>
+              <h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">Run the room with a clearer view.</h1>
+              <p className="mt-6 max-w-md text-base leading-7 text-slate-300">Keep tabs moving, stock accurate, and every shift accountable from one calm command centre.</p>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-slate-400">
+              <Sparkles size={16} className="text-emerald-300" /> Designed for the Lagos hospitality rhythm
+            </div>
+          </div>
+        </div>
+        <div className="p-8 sm:p-12">
+          <div className="mb-12 lg:hidden">
+            <Logo />
+          </div>
+          <div className="mb-8">
+            <p className="mb-3 text-sm text-emerald-300">Welcome back</p>
+            <h2 className="text-3xl font-semibold tracking-tight">{mode === 'login' ? 'Sign in to your bar' : 'Create your account'}</h2>
+            <p className="mt-2 text-sm text-slate-400">{mode === 'login' ? 'Pick up where the shift left off.' : 'New accounts start as staff.'}</p>
+          </div>
+          <form onSubmit={submit} className="space-y-5">
+            {mode === 'signup' && (
+              <label className="block text-sm text-slate-300">
+                Full name
+                <input value={name} onChange={e => setName(e.target.value)} required className="field mt-2" placeholder="Amaka Bello" />
+              </label>
+            )}
+            <label className="block text-sm text-slate-300">
+              Email
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field mt-2" placeholder="you@example.com" />
+            </label>
+            <label className="block text-sm text-slate-300">
+              Password
+              <div className="relative mt-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="field pr-10"
+                  placeholder="At least 6 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white focus:outline-none"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+            {error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
+            <button disabled={busy} className="button-primary w-full">
+              {busy ? 'Please wait…' : mode === 'login' ? 'Enter workspace' : 'Create account'}
+              <ChevronRight size={17} />
+            </button>
+          </form>
+          <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="mt-6 w-full text-sm text-slate-400 transition hover:text-white">
+            {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
 }
 
 function Stat({ label, value, detail, icon: Icon, tone = 'green' }: { label: string; value: string; detail: string; icon: typeof BarChart3; tone?: string }) { return <div className="panel p-5"><div className="mb-6 flex items-center justify-between"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone === 'orange' ? 'bg-orange-400/10 text-orange-300' : tone === 'blue' ? 'bg-sky-400/10 text-sky-300' : 'bg-emerald-400/10 text-emerald-300'}`}><Icon size={19} /></span><span className="text-xs text-emerald-300">Live</span></div><p className="text-sm text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p><p className="mt-2 text-xs text-slate-500">{detail}</p></div>; }
 
 function Dashboard({ products, orders, profile }: { products: Product[]; orders: Order[]; profile: Profile }) { const low = products.filter(p => p.stockQuantity <= p.reorderThreshold); const revenue = orders.reduce((sum, order) => sum + order.total, 0); const stock = products.reduce((sum, p) => sum + p.stockQuantity * p.costPrice, 0); return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-emerald-300">Today at Malt & Lime</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Good evening, {profile.name.split(' ')[0]}.</h1><p className="mt-2 text-sm text-slate-400">Here’s what’s happening across the floor today.</p></div><button className="button-primary"><Plus size={17} /> New order</button></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Stat label="Today's revenue" value={money.format(revenue)} detail={`${orders.length} paid orders`} icon={CircleDollarSign} /><Stat label="Orders served" value={String(orders.length)} detail="Completed orders" icon={ShoppingCart} tone="blue" /><Stat label="Stock value" value={money.format(stock)} detail="At current cost price" icon={Boxes} tone="orange" /><Stat label="Average order" value={money.format(orders.length ? revenue / orders.length : 0)} detail="Across completed orders" icon={BarChart3} /></div><div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]"><div className="panel p-6"><div className="mb-8"><h2 className="text-lg font-semibold text-white">Revenue this week</h2><p className="mt-1 text-sm text-slate-500">Sales activity from the connected API</p></div><div className="flex h-56 items-end gap-3 sm:gap-5">{[42, 55, 48, 68, 61, 92, 73].map((height, i) => <div key={i} className="flex flex-1 flex-col items-center gap-3"><div className="group relative flex h-full w-full items-end"><div style={{ height: `${height}%` }} className={`w-full rounded-t-xl transition-all group-hover:bg-emerald-300 ${i === 5 ? 'bg-emerald-400' : 'bg-emerald-400/25'}`} /></div><span className="text-xs text-slate-500">{['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][i]}</span></div>)}</div></div><div className="panel p-6"><div className="mb-6 flex items-center justify-between"><div><h2 className="text-lg font-semibold text-white">Needs attention</h2><p className="mt-1 text-sm text-slate-500">Low stock across the bar</p></div><span className="rounded-full bg-orange-400/10 px-2.5 py-1 text-xs font-medium text-orange-300">{low.length} items</span></div><div className="space-y-4">{low.slice(0, 4).map(product => <div key={product.id} className="flex items-center justify-between border-b border-white/5 pb-4 last:border-0"><div><p className="text-sm font-medium text-slate-200">{product.name}</p><p className="mt-1 text-xs text-slate-500">Reorder at {product.reorderThreshold} {product.unit}s</p></div><span className="text-sm font-semibold text-orange-300">{product.stockQuantity} left</span></div>)}{!low.length && <p className="text-sm text-slate-500">All shelves are healthy.</p>}</div></div></div></div>; }
 
-function AddProduct({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) { const [name, setName] = useState(''); const [price, setPrice] = useState(''); const [category, setCategory] = useState('Beer'); const [stock, setStock] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); async function save(e: React.FormEvent) { e.preventDefault(); setBusy(true); setError(''); try { await api.products.create({ name, category, unit: 'bottle', sellingPrice: Number(price), costPrice: Number(price) * .6, stockQuantity: Number(stock), reorderThreshold: 5 }); onSaved(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save'); } finally { setBusy(false); } } return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><form onSubmit={save} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#10211c] p-6 shadow-2xl"><div className="mb-6 flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white">Add product</h2><p className="mt-1 text-sm text-slate-400">Add a new item to your shelves.</p></div><button type="button" onClick={onClose} className="text-slate-500 hover:text-white"><X size={20} /></button></div><div className="space-y-4"><label className="block text-sm text-slate-300">Product name<input value={name} onChange={e => setName(e.target.value)} required className="field mt-2" placeholder="e.g. Star Lager" /></label><label className="block text-sm text-slate-300">Category<select value={category} onChange={e => setCategory(e.target.value)} className="field mt-2">{categories.slice(1).map(c => <option key={c}>{c}</option>)}</select></label><div className="grid grid-cols-2 gap-4"><label className="block text-sm text-slate-300">Selling price<input value={price} onChange={e => setPrice(e.target.value)} required type="number" className="field mt-2" placeholder="1500" /></label><label className="block text-sm text-slate-300">Opening stock<input value={stock} onChange={e => setStock(e.target.value)} required type="number" className="field mt-2" placeholder="24" /></label></div>{error && <p className="text-sm text-red-300">{error}</p>}</div><div className="mt-7 flex justify-end gap-3"><button type="button" onClick={onClose} className="button-quiet">Cancel</button><button disabled={busy} className="button-primary">{busy ? 'Saving…' : 'Save product'}</button></div></form></div>; }
+function AddProduct({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [costPrice, setCostPrice] = useState('');
+  const [category, setCategory] = useState('Beer');
+  const [stock, setStock] = useState('');
+  const [reorderThreshold, setReorderThreshold] = useState('5');
+  const [unit, setUnit] = useState('bottle');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-function Inventory({ products, refresh }: { products: Product[]; refresh: () => void }) { const [query, setQuery] = useState(''); const [category, setCategory] = useState('All'); const [showAdd, setShowAdd] = useState(false); const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) && (category === 'All' || p.category === category)); return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-emerald-300">Control centre</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Inventory</h1><p className="mt-2 text-sm text-slate-400">Know what’s moving before the shelves do.</p></div><button onClick={() => setShowAdd(true)} className="button-primary"><PackagePlus size={17} /> Add product</button></div><div className="panel overflow-hidden"><div className="flex flex-col gap-4 border-b border-white/5 p-4 lg:flex-row lg:items-center lg:justify-between"><div className="relative w-full max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} /><input value={query} onChange={e => setQuery(e.target.value)} className="field pl-10" placeholder="Search products" /></div><div className="flex gap-2 overflow-x-auto">{categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>{item}</button>)}</div></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4 font-medium">Product</th><th className="px-5 py-4 font-medium">Category</th><th className="px-5 py-4 font-medium">Selling price</th><th className="px-5 py-4 font-medium">In stock</th><th className="px-5 py-4 font-medium">Status</th></tr></thead><tbody>{filtered.map(p => { const low = p.stockQuantity <= p.reorderThreshold; return <tr key={p.id} className="border-t border-white/5 transition hover:bg-white/[0.025]"><td className="px-5 py-4"><p className="font-medium text-slate-200">{p.name}</p><p className="mt-1 text-xs text-slate-500">Per {p.unit}</p></td><td className="px-5 py-4 text-slate-400">{p.category}</td><td className="px-5 py-4 font-medium text-slate-200">{money.format(p.sellingPrice)}</td><td className="px-5 py-4 text-slate-300">{p.stockQuantity}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${low ? 'bg-orange-400/10 text-orange-300' : 'bg-emerald-400/10 text-emerald-300'}`}>{low ? 'Reorder soon' : 'Healthy'}</span></td></tr>; })}</tbody></table>{!filtered.length && <div className="p-12 text-center text-sm text-slate-500">No products match that search.</div>}</div></div>{showAdd && <AddProduct onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); refresh(); }} />}</div>; }
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api.products.create({
+        name,
+        category,
+        unit,
+        sellingPrice: Number(price),
+        costPrice: Number(costPrice),
+        stockQuantity: Number(stock),
+        reorderThreshold: Number(reorderThreshold)
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <form onSubmit={save} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#10211c] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Add product</h2>
+            <p className="mt-1 text-sm text-slate-400">Add a new item to your shelves.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-slate-500 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block text-sm text-slate-300">
+            Product name
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              className="field mt-2"
+              placeholder="e.g. Star Lager"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              Category
+              <select value={category} onChange={e => setCategory(e.target.value)} className="field mt-2">
+                {categories.slice(1).map(c => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Unit
+              <select value={unit} onChange={e => setUnit(e.target.value)} className="field mt-2">
+                <option value="bottle">Bottle</option>
+                <option value="glass">Glass</option>
+                <option value="plate">Plate</option>
+                <option value="can">Can</option>
+                <option value="shot">Shot</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              Selling price (₦)
+              <input
+                value={price}
+                onChange={e => {
+                  const val = e.target.value;
+                  setPrice(val);
+                  const num = Number(val);
+                  if (!isNaN(num)) {
+                    setCostPrice(String(Math.round(num * 0.6)));
+                  }
+                }}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="1500"
+              />
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Cost price (₦)
+              <input
+                value={costPrice}
+                onChange={e => setCostPrice(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="900"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              Opening stock
+              <input
+                value={stock}
+                onChange={e => setStock(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="24"
+              />
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Reorder threshold
+              <input
+                value={reorderThreshold}
+                onChange={e => setReorderThreshold(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="5"
+              />
+            </label>
+          </div>
+
+          {error && <p className="text-sm text-red-300">{error}</p>}
+        </div>
+
+        <div className="mt-7 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="button-quiet">
+            Cancel
+          </button>
+          <button disabled={busy} className="button-primary">
+            {busy ? 'Saving…' : 'Save product'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditProduct({ product, onClose, onSaved }: { product: Product; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(product.name);
+  const [price, setPrice] = useState(String(product.sellingPrice));
+  const [costPrice, setCostPrice] = useState(String(product.costPrice || 0));
+  const [category, setCategory] = useState(product.category);
+  const [stock, setStock] = useState(String(product.stockQuantity));
+  const [reorderThreshold, setReorderThreshold] = useState(String(product.reorderThreshold));
+  const [unit, setUnit] = useState(product.unit || 'bottle');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api.products.update(product.id, {
+        name,
+        category,
+        unit,
+        sellingPrice: Number(price),
+        costPrice: Number(costPrice),
+        stockQuantity: Number(stock),
+        reorderThreshold: Number(reorderThreshold)
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <form onSubmit={save} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#10211c] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Edit product</h2>
+            <p className="mt-1 text-sm text-slate-400">Modify item parameters and safety stock.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-slate-500 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block text-sm text-slate-300">
+            Product name
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              className="field mt-2"
+              placeholder="e.g. Star Lager"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              Category
+              <select value={category} onChange={e => setCategory(e.target.value)} className="field mt-2">
+                {categories.slice(1).map(c => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Unit
+              <select value={unit} onChange={e => setUnit(e.target.value)} className="field mt-2">
+                <option value="bottle">Bottle</option>
+                <option value="glass">Glass</option>
+                <option value="plate">Plate</option>
+                <option value="can">Can</option>
+                <option value="shot">Shot</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              Selling price (₦)
+              <input
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="1500"
+              />
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Cost price (₦)
+              <input
+                value={costPrice}
+                onChange={e => setCostPrice(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="900"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-300">
+              In Stock Quantity
+              <input
+                value={stock}
+                onChange={e => setStock(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="24"
+              />
+            </label>
+
+            <label className="block text-sm text-slate-300">
+              Reorder threshold
+              <input
+                value={reorderThreshold}
+                onChange={e => setReorderThreshold(e.target.value)}
+                required
+                type="number"
+                min="0"
+                className="field mt-2"
+                placeholder="5"
+              />
+            </label>
+          </div>
+
+          {error && <p className="text-sm text-red-300">{error}</p>}
+        </div>
+
+        <div className="mt-7 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="button-quiet">
+            Cancel
+          </button>
+          <button disabled={busy} className="button-primary">
+            {busy ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Inventory({ products, refresh }: { products: Product[]; refresh: () => void }) {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('All');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) && (category === 'All' || p.category === category));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm text-emerald-300">Control centre</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Inventory</h1>
+          <p className="mt-2 text-sm text-slate-400">Know what’s moving before the shelves do.</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} className="button-primary">
+          <PackagePlus size={17} /> Add product
+        </button>
+      </div>
+
+      <div className="panel overflow-hidden">
+        <div className="flex flex-col gap-4 border-b border-white/5 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+            <input value={query} onChange={e => setQuery(e.target.value)} className="field pl-10" placeholder="Search products" />
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {categories.map(item => (
+              <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-5 py-4 font-medium">Product</th>
+                <th className="px-5 py-4 font-medium">Category</th>
+                <th className="px-5 py-4 font-medium text-right">Cost Price</th>
+                <th className="px-5 py-4 font-medium text-right">Selling Price</th>
+                <th className="px-5 py-4 font-medium text-right">In Stock</th>
+                <th className="px-5 py-4 font-medium">Status</th>
+                <th className="px-5 py-4 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p => {
+                const low = p.stockQuantity <= p.reorderThreshold;
+                return (
+                  <tr key={p.id} className="border-t border-white/5 transition hover:bg-white/[0.025]">
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-slate-200">{p.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">Per {p.unit}</p>
+                    </td>
+                    <td className="px-5 py-4 text-slate-400">{p.category}</td>
+                    <td className="px-5 py-4 text-right font-medium text-slate-300">{money.format(p.costPrice)}</td>
+                    <td className="px-5 py-4 text-right font-medium text-slate-200">{money.format(p.sellingPrice)}</td>
+                    <td className="px-5 py-4 text-right text-slate-300">{p.stockQuantity}</td>
+                    <td className="px-5 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${low ? 'bg-orange-400/10 text-orange-300' : 'bg-emerald-400/10 text-emerald-300'}`}>
+                        {low ? 'Reorder soon' : 'Healthy'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        onClick={() => setEditingProduct(p)}
+                        className="p-1.5 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition inline-flex items-center"
+                        title="Edit product"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!filtered.length && <div className="p-12 text-center text-sm text-slate-500">No products match that search.</div>}
+        </div>
+      </div>
+
+      {showAdd && <AddProduct onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); refresh(); }} />}
+      {editingProduct && <EditProduct product={editingProduct} onClose={() => setEditingProduct(null)} onSaved={() => { setEditingProduct(null); refresh(); }} />}
+    </div>
+  );
+}
 
 function Pos({ products, refresh }: { products: Product[]; refresh: () => void }) {
   const [category, setCategory] = useState('All');
@@ -38,6 +526,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
   const [printReceiptOnCheckout, setPrintReceiptOnCheckout] = useState(true);
   const [receiptToPrint, setReceiptToPrint] = useState<any | null>(null);
   const [isSimulatingPrint, setIsSimulatingPrint] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<'menu' | 'cart'>('menu');
 
   const visible = products.filter(p => category === 'All' || p.category === category);
   const subtotal = cart.reduce((s, p) => s + p.sellingPrice * p.quantity, 0);
@@ -90,8 +579,30 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
         </div>
       </div>
 
+      {/* Mobile Tab Switcher */}
+      <div className="flex xl:hidden rounded-xl bg-white/[0.03] p-1 border border-white/5 w-full">
+        <button
+          type="button"
+          onClick={() => setActiveMobileTab('menu')}
+          className={`flex-1 rounded-lg py-2.5 text-xs font-semibold tracking-wide transition text-center ${
+            activeMobileTab === 'menu' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Menu
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMobileTab('cart')}
+          className={`flex-1 rounded-lg py-2.5 text-xs font-semibold tracking-wide transition text-center relative ${
+            activeMobileTab === 'cart' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
+        </button>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div>
+        <div className={`${activeMobileTab === 'menu' ? 'block' : 'hidden'} xl:block`}>
           <div className="mb-5 flex gap-2 overflow-x-auto">
             {categories.map(item => (
               <button key={item} onClick={() => setCategory(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition ${category === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
@@ -113,7 +624,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
           </div>
         </div>
 
-        <div className="panel h-fit p-5 xl:sticky xl:top-6">
+        <div className={`${activeMobileTab === 'cart' ? 'block' : 'hidden'} xl:block panel h-fit p-5 xl:sticky xl:top-6`}>
           <div className="flex items-center justify-between border-b border-white/5 pb-5">
             <div>
               <h2 className="font-semibold text-white">{tab}</h2>
@@ -411,6 +922,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#07110f] text-white">
+      {/* Mobile Sidebar Backdrop */}
+      {mobile && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-[2px] lg:hidden"
+          onClick={() => setMobile(false)}
+        />
+      )}
+
       <aside className={`print:hidden fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between">
           <Logo />
