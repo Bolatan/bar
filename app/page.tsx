@@ -33,7 +33,137 @@ function AuthScreen({ onAuth }: { onAuth: (user: Profile, token: string, refresh
 
 function Stat({ label, value, detail, icon: Icon, tone = 'green' }: { label: string; value: string; detail: string; icon: typeof BarChart3; tone?: string }) { return <div className="panel p-5"><div className="mb-6 flex items-center justify-between"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone === 'orange' ? 'bg-orange-400/10 text-orange-300' : tone === 'blue' ? 'bg-sky-400/10 text-sky-300' : 'bg-emerald-400/10 text-emerald-300'}`}><Icon size={19} /></span><span className="text-xs text-emerald-300">Live</span></div><p className="text-sm text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p><p className="mt-2 text-xs text-slate-500">{detail}</p></div>; }
 
-function Dashboard({ products, orders, profile }: { products: Product[]; orders: Order[]; profile: Profile }) { const low = products.filter(p => p.stockQuantity <= p.reorderThreshold); const revenue = orders.reduce((sum, order) => sum + order.total, 0); const stock = products.reduce((sum, p) => sum + p.stockQuantity * p.costPrice, 0); return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-emerald-300">Today at Malt & Lime Nigeria</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Good evening, {profile.name.split(' ')[0]}.</h1><p className="mt-2 text-sm text-slate-400">Here’s what’s happening across the floor today.</p></div><button className="button-primary"><Plus size={17} /> New order</button></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Stat label="Today's revenue" value={money.format(revenue)} detail={`${orders.length} paid orders`} icon={CircleDollarSign} /><Stat label="Orders served" value={String(orders.length)} detail="Completed orders" icon={ShoppingCart} tone="blue" /><Stat label="Stock value" value={money.format(stock)} detail="At current cost price" icon={Boxes} tone="orange" /><Stat label="Average order" value={money.format(orders.length ? revenue / orders.length : 0)} detail="Across completed orders" icon={BarChart3} /></div><div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]"><div className="panel p-6"><div className="mb-8"><h2 className="text-lg font-semibold text-white">Revenue this week</h2><p className="mt-1 text-sm text-slate-500">Sales activity from the connected API</p></div><div className="flex h-56 items-end gap-3 sm:gap-5">{[42, 55, 48, 68, 61, 92, 73].map((height, i) => <div key={i} className="flex flex-1 flex-col items-center gap-3"><div className="group relative flex h-full w-full items-end"><div style={{ height: `${height}%` }} className={`w-full rounded-t-xl transition-all group-hover:bg-emerald-300 ${i === 5 ? 'bg-emerald-400' : 'bg-emerald-400/25'}`} /></div><span className="text-xs text-slate-500">{['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][i]}</span></div>)}</div></div><div className="panel p-6"><div className="mb-6 flex items-center justify-between"><div><h2 className="text-lg font-semibold text-white">Needs attention</h2><p className="mt-1 text-sm text-slate-500">Low stock across the bar</p></div><span className="rounded-full bg-orange-400/10 px-2.5 py-1 text-xs font-medium text-orange-300">{low.length} items</span></div><div className="space-y-4">{low.slice(0, 4).map(product => <div key={product.id} className="flex items-center justify-between border-b border-white/5 pb-4 last:border-0 last:pb-4"><div><p className="text-sm font-medium text-slate-200">{product.name}</p><p className="mt-1 text-xs text-slate-500">Reorder at {product.reorderThreshold} {product.unit}s</p></div><span className="text-sm font-semibold text-orange-300">{product.stockQuantity} left</span></div>)}{!low.length && <p className="text-sm text-slate-500">All shelves are healthy.</p>}</div></div></div></div>; }
+const getLocalDateString = (date: Date) => {
+  try {
+    return date.toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Africa/Lagos'
+    });
+  } catch {
+    return date.toDateString();
+  }
+};
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return getLocalDateString(d1) === getLocalDateString(d2);
+};
+
+function Dashboard({ products, orders, profile }: { products: Product[]; orders: Order[]; profile: Profile }) {
+  const low = products.filter(p => p.stockQuantity <= p.reorderThreshold);
+  const revenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const stock = products.reduce((sum, p) => sum + p.stockQuantity * p.costPrice, 0);
+
+  // Generate the last 7 days ending with today in West Africa Time
+  const last7Days = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+  }, []);
+
+  // Group and sum revenue for each of the last 7 days
+  const dailyRevenues = useMemo(() => {
+    return last7Days.map(dayDate => {
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.paidAt || order.createdAt);
+        return isSameDay(orderDate, dayDate);
+      });
+      const total = dayOrders.reduce((sum, order) => sum + order.total, 0);
+      return {
+        date: dayDate,
+        label: dayDate.toLocaleDateString('en-NG', { weekday: 'short', timeZone: 'Africa/Lagos' }),
+        total,
+        orderCount: dayOrders.length
+      };
+    });
+  }, [orders, last7Days]);
+
+  const maxRevenue = useMemo(() => {
+    return Math.max(...dailyRevenues.map(r => r.total), 0);
+  }, [dailyRevenues]);
+
+  const todayRevenue = dailyRevenues[6]?.total || 0;
+  const todayOrdersCount = dailyRevenues[6]?.orderCount || 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm text-emerald-300">Today at Malt & Lime Nigeria</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Good evening, {profile.name.split(' ')[0]}.</h1>
+          <p className="mt-2 text-sm text-slate-400">Here’s what’s happening across the floor today.</p>
+        </div>
+        <button className="button-primary"><Plus size={17} /> New order</button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          label="Today's revenue"
+          value={money.format(todayRevenue)}
+          detail={`${todayOrdersCount} paid orders today`}
+          icon={CircleDollarSign}
+        />
+        <Stat label="Orders served" value={String(orders.length)} detail="Completed orders" icon={ShoppingCart} tone="blue" />
+        <Stat label="Stock value" value={money.format(stock)} detail="At current cost price" icon={Boxes} tone="orange" />
+        <Stat label="Average order" value={money.format(orders.length ? revenue / orders.length : 0)} detail="Across completed orders" icon={BarChart3} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
+        <div className="panel p-6">
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-white">Revenue this week</h2>
+            <p className="mt-1 text-sm text-slate-500">Sales activity from the connected API</p>
+          </div>
+          <div className="flex h-56 items-end gap-3 sm:gap-5">
+            {dailyRevenues.map((day, i) => {
+              const height = maxRevenue > 0 ? (day.total / maxRevenue) * 100 : 0;
+              const isToday = i === 6;
+              return (
+                <div key={i} className="flex flex-1 flex-col items-center gap-3">
+                  <div
+                    className="group relative flex h-40 w-full items-end"
+                    title={`${day.label}: ${money.format(day.total)} (${day.orderCount} paid orders)`}
+                  >
+                    <div
+                      style={{ height: `${height}%` }}
+                      className={`w-full rounded-t-xl transition-all group-hover:bg-emerald-300 ${isToday ? 'bg-emerald-400' : 'bg-emerald-400/25'}`}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500">{day.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="panel p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Needs attention</h2>
+              <p className="mt-1 text-sm text-slate-500">Low stock across the bar</p>
+            </div>
+            <span className="rounded-full bg-orange-400/10 px-2.5 py-1 text-xs font-medium text-orange-300">{low.length} items</span>
+          </div>
+          <div className="space-y-4">
+            {low.slice(0, 4).map(product => (
+              <div key={product.id} className="flex items-center justify-between border-b border-white/5 pb-4 last:border-0 last:pb-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">{product.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">Reorder at {product.reorderThreshold} {product.unit}s</p>
+                </div>
+                <span className="text-sm font-semibold text-orange-300">{product.stockQuantity} left</span>
+              </div>
+            ))}
+            {!low.length && <p className="text-sm text-slate-500">All shelves are healthy.</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AddProduct({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) { const [name, setName] = useState(''); const [price, setPrice] = useState(''); const [category, setCategory] = useState('Beer'); const [stock, setStock] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); async function save(e: React.FormEvent) { e.preventDefault(); setBusy(true); setError(''); try { await api.products.create({ name, category, unit: 'bottle', sellingPrice: Number(price), costPrice: Number(price) * .6, stockQuantity: Number(stock), reorderThreshold: 5 }); onSaved(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save'); } finally { setBusy(false); } } return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><form onSubmit={save} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#10211c] p-6 shadow-2xl"><div className="mb-6 flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white">Add product</h2><p className="mt-1 text-sm text-slate-400">Add a new item to your shelves.</p></div><button type="button" onClick={onClose} className="text-slate-500 hover:text-white"><X size={20} /></button></div><div className="space-y-4"><label className="block text-sm text-slate-300">Product name<input value={name} onChange={e => setName(e.target.value)} required className="field mt-2" placeholder="e.g. Star Lager" /></label><label className="block text-sm text-slate-300">Category<select value={category} onChange={e => setCategory(e.target.value)} className="field mt-2">{categories.slice(1).map(c => <option key={c}>{c}</option>)}</select></label><div className="grid grid-cols-2 gap-4"><label className="block text-sm text-slate-300">Selling price<input value={price} onChange={e => setPrice(e.target.value)} required type="number" className="field mt-2" placeholder="1500" /></label><label className="block text-sm text-slate-300">Opening stock<input value={stock} onChange={e => setStock(e.target.value)} required type="number" className="field mt-2" placeholder="24" /></label></div>{error && <p className="text-sm text-red-300">{error}</p>}</div><div className="mt-7 flex justify-end gap-3"><button type="button" onClick={onClose} className="button-quiet">Cancel</button><button disabled={busy} className="button-primary">{busy ? 'Saving…' : 'Save product'}</button></div></form></div>; }
 
