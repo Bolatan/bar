@@ -50,7 +50,7 @@ const isSameDay = (d1: Date, d2: Date) => {
   return getLocalDateString(d1) === getLocalDateString(d2);
 };
 
-function Dashboard({ products, orders, profile }: { products: Product[]; orders: Order[]; profile: Profile }) {
+function Dashboard({ products, orders, profile, onNewOrder }: { products: Product[]; orders: Order[]; profile: Profile; onNewOrder: () => void }) {
   const low = products.filter(p => p.stockQuantity <= p.reorderThreshold);
   const revenue = orders.reduce((sum, order) => sum + order.total, 0);
   const stock = products.reduce((sum, p) => sum + p.stockQuantity * p.costPrice, 0);
@@ -96,7 +96,7 @@ function Dashboard({ products, orders, profile }: { products: Product[]; orders:
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Good evening, {profile.name.split(' ')[0]}.</h1>
           <p className="mt-2 text-sm text-slate-400">Here’s what’s happening across the floor today.</p>
         </div>
-        <button className="button-primary"><Plus size={17} /> New order</button>
+        <button onClick={onNewOrder} className="button-primary"><Plus size={17} /> New order</button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1001,7 +1001,7 @@ export default function Home() {
 
   const refresh = () => load();
 
-  const content = view === 'dashboard' ? <Dashboard products={products} orders={orders} profile={user} />
+  const content = view === 'dashboard' ? <Dashboard products={products} orders={orders} profile={user} onNewOrder={() => changeView('pos')} />
     : view === 'inventory' ? <Inventory products={products} refresh={refresh} />
     : view === 'pos' ? <Pos products={products} refresh={refresh} />
     : view === 'shifts' ? <Shifts profile={user} />
