@@ -284,7 +284,18 @@ export const api = {
       }
       return apiFetch<{ order: Order }>('/orders', { method: 'POST', body: JSON.stringify(data) });
     },
-    checkout: async (id: string, data: { paymentMethod: string; paymentRef?: string; discount?: number }) => {
+    checkout: async (
+      id: string,
+      data: {
+        paymentMethod: string;
+        paymentRef?: string;
+        discount?: number;
+        customerEmail?: string;
+        customerPhone?: string;
+        marketingConsentEmail?: boolean;
+        marketingConsentWhatsApp?: boolean;
+      }
+    ) => {
       if (offlineMode) {
         const order = OFFLINE_ORDERS.find((item) => item.id === id);
         if (!order) throw new ApiError('Order not found', 404);
@@ -293,6 +304,10 @@ export const api = {
         order.vat = +((order.subtotal - discount) * 0.075).toFixed(2);
         order.total = order.subtotal - discount + order.vat;
         order.paymentMethod = data.paymentMethod;
+        order.customerEmail = data.customerEmail || undefined;
+        order.customerPhone = data.customerPhone || undefined;
+        order.marketingConsentEmail = data.marketingConsentEmail || false;
+        order.marketingConsentWhatsApp = data.marketingConsentWhatsApp || false;
         order.status = 'paid';
         order.paidAt = new Date().toISOString();
         return { order };
@@ -559,6 +574,10 @@ export type Order = {
   staffId?: string;
   paidAt?: string;
   createdAt: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  marketingConsentEmail?: boolean;
+  marketingConsentWhatsApp?: boolean;
 };
 export type Shift = {
   id: string;

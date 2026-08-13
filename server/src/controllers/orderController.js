@@ -57,6 +57,10 @@ async function checkout(req, res, next) {
     order.paymentRef = data.paymentRef || null;
     order.status = 'paid';
     order.paidAt = new Date();
+    order.customerEmail = data.customerEmail || null;
+    order.customerPhone = data.customerPhone || null;
+    order.marketingConsentEmail = !!data.marketingConsentEmail;
+    order.marketingConsentWhatsApp = !!data.marketingConsentWhatsApp;
     await store.saveOrder(order);
 
     for (const item of order.items) {

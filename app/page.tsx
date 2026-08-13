@@ -39,6 +39,11 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
   const [receiptToPrint, setReceiptToPrint] = useState<any | null>(null);
   const [isSimulatingPrint, setIsSimulatingPrint] = useState(false);
 
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [marketingConsentEmail, setMarketingConsentEmail] = useState(false);
+  const [marketingConsentWhatsApp, setMarketingConsentWhatsApp] = useState(false);
+
   const visible = products.filter(p => category === 'All' || p.category === category);
   const subtotal = cart.reduce((s, p) => s + p.sellingPrice * p.quantity, 0);
   const vat = subtotal * .075;
@@ -52,7 +57,13 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
     if (!cart.length) return;
     try {
       const { order } = await api.orders.create({ tabName: tab, items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.sellingPrice })) });
-      await api.orders.checkout(order.id, { paymentMethod: 'cash' });
+      await api.orders.checkout(order.id, {
+        paymentMethod: 'cash',
+        customerEmail: customerEmail.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        marketingConsentEmail,
+        marketingConsentWhatsApp,
+      });
 
       const fullOrder = {
         ...order,
@@ -60,10 +71,18 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
         vat,
         total,
         discount: order.discount || 0,
+        customerEmail: customerEmail.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        marketingConsentEmail,
+        marketingConsentWhatsApp,
         items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.sellingPrice }))
       };
 
       setCart([]);
+      setCustomerEmail('');
+      setCustomerPhone('');
+      setMarketingConsentEmail(false);
+      setMarketingConsentWhatsApp(false);
       if (printReceiptOnCheckout) {
         setReceiptToPrint(fullOrder);
       } else {
@@ -158,7 +177,62 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               <span>{money.format(total)}</span>
             </div>
 
-            <div className="flex items-center gap-2.5 pt-2 pb-1 text-slate-400">
+            {/* Optional Customer Contact & Marketing Consent */}
+            <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.01] p-3 my-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Customer Info (Optional)</p>
+
+              <div className="grid gap-2 grid-cols-2">
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Email</label>
+                  <input
+                    type="email"
+                    placeholder="customer@mail.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400/60"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">WhatsApp / Phone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 08012345678"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400/60"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1.5 border-t border-white/5">
+                <div className="flex items-center gap-2 text-slate-400">
+                  <input
+                    type="checkbox"
+                    id="consentEmail"
+                    checked={marketingConsentEmail}
+                    onChange={(e) => setMarketingConsentEmail(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-white/10 bg-white/5 text-emerald-500 accent-emerald-400 focus:ring-0 cursor-pointer"
+                  />
+                  <label htmlFor="consentEmail" className="text-[11px] cursor-pointer hover:text-white">
+                    Opt-in to Email marketing
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <input
+                    type="checkbox"
+                    id="consentWhatsApp"
+                    checked={marketingConsentWhatsApp}
+                    onChange={(e) => setMarketingConsentWhatsApp(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-white/10 bg-white/5 text-emerald-500 accent-emerald-400 focus:ring-0 cursor-pointer"
+                  />
+                  <label htmlFor="consentWhatsApp" className="text-[11px] cursor-pointer hover:text-white">
+                    Opt-in to WhatsApp marketing
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-1 pb-1 text-slate-400">
               <input
                 type="checkbox"
                 id="printReceipt"
@@ -260,6 +334,33 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
                 <span>TOTAL:</span>
                 <span>{money.format(receiptToPrint.total)}</span>
               </div>
+              {(receiptToPrint.customerEmail || receiptToPrint.customerPhone) && (
+                <>
+                  <div className="border-b border-dashed border-slate-300 my-3" />
+                  <div className="font-bold mb-1">CUSTOMER INFO:</div>
+                  {receiptToPrint.customerEmail && (
+                    <div className="flex justify-between text-[10px]">
+                      <span>Email:</span>
+                      <span className="truncate max-w-[160px]">{receiptToPrint.customerEmail}</span>
+                    </div>
+                  )}
+                  {receiptToPrint.customerPhone && (
+                    <div className="flex justify-between text-[10px]">
+                      <span>Phone:</span>
+                      <span>{receiptToPrint.customerPhone}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[9px] text-slate-500 mt-0.5">
+                    <span>Opt-in:</span>
+                    <span>
+                      {[
+                        receiptToPrint.marketingConsentEmail ? 'Email' : null,
+                        receiptToPrint.marketingConsentWhatsApp ? 'WhatsApp' : null
+                      ].filter(Boolean).join(', ') || 'None'}
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="border-b border-dashed border-slate-300 my-3" />
               <div className="text-center font-semibold text-[10px]">PAID VIA CASH</div>
               <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>
