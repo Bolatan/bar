@@ -245,8 +245,17 @@ export const api = {
       }
       return apiFetch<{ product: Product }>('/products', { method: 'POST', body: JSON.stringify(data) });
     },
-    update: (id: string, data: Partial<Product>) =>
-      apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    update: async (id: string, data: Partial<Product>) => {
+      if (offlineMode) {
+        const index = OFFLINE_PRODUCTS.findIndex((p) => p.id === id);
+        if (index !== -1) {
+          OFFLINE_PRODUCTS[index] = { ...OFFLINE_PRODUCTS[index], ...data };
+          return { product: OFFLINE_PRODUCTS[index] };
+        }
+        throw new ApiError('Product not found', 404);
+      }
+      return apiFetch<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
     remove: (id: string) =>
       apiFetch<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
   },
