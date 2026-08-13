@@ -22,6 +22,10 @@ const OFFLINE_USERS: Record<string, Profile> = {
   'manager@maltlime.ng': { id: 'offline-manager', name: 'Manager', email: 'manager@maltlime.ng', role: 'manager' },
   'staff@maltlime.ng': { id: 'offline-staff', name: 'Staff', email: 'staff@maltlime.ng', role: 'staff' },
 };
+const OFFLINE_AUDIT_LOGS: AuditLog[] = [
+  { id: 'off-log-1', action: 'user_create', entityType: 'User', entityId: 'offline-staff', userId: { id: 'offline-owner', name: 'Owner', role: 'owner' }, details: { email: 'staff@maltlime.ng', role: 'staff' }, createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: 'off-log-2', action: 'shift_open', entityType: 'Shift', entityId: 'offline-shift-1', userId: { id: 'offline-manager', name: 'Manager', role: 'manager' }, details: { openingFloat: 10000 }, createdAt: new Date(Date.now() - 7200000).toISOString() }
+];
 let OFFLINE_SHIFTS: Shift[] = [];
 let OFFLINE_CURRENT_SHIFT: Shift | null = null;
 let offlineMode = false;
@@ -544,6 +548,19 @@ export const api = {
       return apiFetch<{ message: string }>(`/users/${id}`, { method: 'DELETE' });
     }
   },
+  auditLogs: {
+    list: async () => {
+      try {
+        return await apiFetch<{ logs: AuditLog[] }>('/audit-logs');
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+          return { logs: OFFLINE_AUDIT_LOGS };
+        }
+        throw error;
+      }
+    }
+  }
 };
 
 export type Profile = { id: string; name: string; email: string; role: 'owner' | 'manager' | 'staff'; phone?: string; isActive?: boolean };
@@ -588,4 +605,13 @@ export type Shift = {
   variance: number | null;
   openedAt: string;
   closedAt: string | null;
+};
+export type AuditLog = {
+  id: string;
+  userId: { id: string; name: string; role: string } | string | null;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  details: any;
+  createdAt: string;
 };

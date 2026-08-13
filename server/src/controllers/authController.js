@@ -20,6 +20,7 @@ async function login(req, res, next) {
 
 async function register(req, res, next) {
   try {
+    throw new ApiError(403, 'Self-registration is disabled');
     const { name, email, password } = registerSchema.parse(req.body);
     const existing = await store.findUserByEmail(email);
     if (existing) throw new ApiError(409, 'Email already registered');
