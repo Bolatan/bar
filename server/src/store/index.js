@@ -321,6 +321,18 @@ const store = {
     }
     return order;
   },
+  async findCollectedContacts() {
+    if (isMongo()) {
+      const Order = require('../models/Order');
+      return Order.find({
+        $or: [
+          { customerEmail: { $ne: null, $ne: "" } },
+          { customerPhone: { $ne: null, $ne: "" } }
+        ]
+      }).sort({ createdAt: -1 });
+    }
+    return memory.orders.filter(o => o.customerEmail || o.customerPhone);
+  },
 
   // ---- Shifts ----
   async findCurrentShift(staffId) {

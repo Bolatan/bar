@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X, ShieldAlert } from 'lucide-react';
+import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X, ShieldAlert, Megaphone } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
 import Team from '@/components/Team';
 import SettingsView from '@/components/SettingsView';
 import AuditLogs from '@/components/AuditLogs';
+import Campaigns from '@/components/Campaigns';
 
-type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff' | 'settings' | 'audit-logs';
+type View = 'dashboard' | 'inventory' | 'pos' | 'shifts' | 'reports' | 'staff' | 'settings' | 'audit-logs' | 'campaigns';
 type CartItem = Product & { quantity: number };
 const money = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 const categories = ['All', 'Beer', 'Spirits', 'Cocktails', 'Soft Drinks', 'Food', 'Wine', 'Other'];
@@ -20,6 +21,7 @@ const nav = [
   { id: 'shifts' as View, label: 'Shifts', icon: Clock3 },
   { id: 'reports' as View, label: 'Reports', icon: ClipboardList },
   { id: 'staff' as View, label: 'Team', icon: Users },
+  { id: 'campaigns' as View, label: 'Marketing', icon: Megaphone },
   { id: 'audit-logs' as View, label: 'Audit Log', icon: ShieldAlert }
 ];
 
@@ -1009,7 +1011,7 @@ export default function Home() {
     if (user) {
       const isAllowed = (v: View) => {
         if (v === 'dashboard' || v === 'pos' || v === 'inventory' || v === 'shifts' || v === 'settings') return true;
-        if (v === 'reports' || v === 'staff') return user.role === 'owner' || user.role === 'manager';
+        if (v === 'reports' || v === 'staff' || v === 'campaigns') return user.role === 'owner' || user.role === 'manager';
         if (v === 'audit-logs') return user.role === 'owner';
         return false;
       };
@@ -1031,6 +1033,7 @@ export default function Home() {
     : view === 'reports' ? <Reports />
     : view === 'staff' ? <Team currentUser={user} />
     : view === 'audit-logs' ? <AuditLogs />
+    : view === 'campaigns' ? <Campaigns />
     : view === 'settings' ? <SettingsView currentUser={user} onProfileUpdated={(nextUser) => setUser(nextUser)} />
     : <Placeholder title="Team management" text="Manage active staff, roles, and access from one place." icon={Users} />;
 
@@ -1046,7 +1049,7 @@ export default function Home() {
           <nav className="space-y-1">
             {nav.filter(item => {
               if (item.id === 'audit-logs') return user.role === 'owner';
-              return user.role === 'owner' || user.role === 'manager' || !['reports', 'staff'].includes(item.id);
+              return user.role === 'owner' || user.role === 'manager' || !['reports', 'staff', 'campaigns'].includes(item.id);
             }).map(item => {
               const Icon = item.icon;
               return (

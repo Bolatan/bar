@@ -40,6 +40,7 @@ app.use('/api/stock-movements', auth, require('./routes/stock'));
 app.use('/api/orders', auth, require('./routes/orders'));
 app.use('/api/shifts', auth, require('./routes/shifts'));
 app.use('/api/reports', auth, require('./routes/reports'));
+app.use('/api/campaigns', auth, require('./routes/campaigns'));
 
 app.get('/api/health', (_req, res) => {
   res.json({
