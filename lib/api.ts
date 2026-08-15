@@ -601,6 +601,122 @@ export const api = {
         throw error;
       }
     }
+  },
+  campaigns: {
+    contacts: async () => {
+      try {
+        return await apiFetch<{ contacts: any[] }>('/campaigns/contacts');
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+
+          // Fallback: extract unique contacts from OFFLINE_ORDERS
+          const contactsMap = new Map<string, any>();
+          OFFLINE_ORDERS.forEach(order => {
+            const email = (order.customerEmail || '').trim().toLowerCase();
+            const phone = (order.customerPhone || '').trim();
+
+            if (email || phone) {
+              const key = email || phone;
+              if (!contactsMap.has(key)) {
+                contactsMap.set(key, {
+                  email: email || '',
+                  phone: phone || '',
+                  marketingConsentEmail: order.marketingConsentEmail || false,
+                  marketingConsentWhatsApp: order.marketingConsentWhatsApp || false,
+                  orderCount: 0,
+                  totalSpent: 0,
+                  lastOrderDate: order.paidAt || order.createdAt
+                });
+              }
+              const contact = contactsMap.get(key);
+              contact.orderCount += 1;
+              contact.totalSpent += order.total || 0;
+              const orderDate = new Date(order.paidAt || order.createdAt);
+              if (orderDate > new Date(contact.lastOrderDate)) {
+                contact.lastOrderDate = order.paidAt || order.createdAt;
+                if (email) contact.email = email;
+                if (phone) contact.phone = phone;
+                contact.marketingConsentEmail = order.marketingConsentEmail || false;
+                contact.marketingConsentWhatsApp = order.marketingConsentWhatsApp || false;
+              }
+            }
+          });
+
+          // Add beautiful default offline marketing contacts for demo
+          if (contactsMap.size === 0) {
+            contactsMap.set('john@maltlime.ng', {
+              email: 'john@maltlime.ng',
+              phone: '08012345678',
+              marketingConsentEmail: true,
+              marketingConsentWhatsApp: true,
+              orderCount: 3,
+              totalSpent: 18500,
+              lastOrderDate: new Date(Date.now() - 3600000 * 4).toISOString()
+            });
+            contactsMap.set('chinwe@lounge.ng', {
+              email: 'chinwe@lounge.ng',
+              phone: '08169998888',
+              marketingConsentEmail: true,
+              marketingConsentWhatsApp: false,
+              orderCount: 1,
+              totalSpent: 65000,
+              lastOrderDate: new Date(Date.now() - 3600000 * 24).toISOString()
+            });
+            contactsMap.set('femi@bar.ng', {
+              email: '',
+              phone: '09077776666',
+              marketingConsentEmail: false,
+              marketingConsentWhatsApp: true,
+              orderCount: 5,
+              totalSpent: 42000,
+              lastOrderDate: new Date(Date.now() - 3600000 * 48).toISOString()
+            });
+          }
+
+          return { contacts: Array.from(contactsMap.values()) };
+        }
+        throw error;
+      }
+    },
+    sendEmail: async (data: { recipients: string[]; subject: string; body: string }) => {
+      try {
+        return await apiFetch<{ success: boolean; simulated: boolean; count: number; message: string }>('/campaigns/send-email', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+          return {
+            success: true,
+            simulated: true,
+            count: data.recipients.length,
+            message: 'Campaign sent successfully in offline simulation mode'
+          };
+        }
+        throw error;
+      }
+    },
+    sendWhatsApp: async (data: { recipients: string[]; message: string }) => {
+      try {
+        return await apiFetch<{ success: boolean; simulated: boolean; count: number; message: string }>('/campaigns/send-whatsapp', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+          return {
+            success: true,
+            simulated: true,
+            count: data.recipients.length,
+            message: 'WhatsApp campaign completed in offline simulation mode'
+          };
+        }
+        throw error;
+      }
+    }
   }
 };
 
