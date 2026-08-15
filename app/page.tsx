@@ -56,6 +56,34 @@ function Dashboard({ products, orders, profile, onNewOrder }: { products: Produc
   const low = products.filter(p => p.stockQuantity <= p.reorderThreshold);
   const revenue = orders.reduce((sum, order) => sum + order.total, 0);
   const stock = products.reduce((sum, p) => sum + p.stockQuantity * p.costPrice, 0);
+  const [greeting, setGreeting] = useState('Good evening');
+
+  useEffect(() => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Lagos',
+        hour: 'numeric',
+        hour12: false
+      });
+      const hour = parseInt(formatter.format(new Date()), 10);
+      if (hour >= 5 && hour < 12) {
+        setGreeting('Good morning');
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting('Good afternoon');
+      } else {
+        setGreeting('Good evening');
+      }
+    } catch {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        setGreeting('Good morning');
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting('Good afternoon');
+      } else {
+        setGreeting('Good evening');
+      }
+    }
+  }, []);
 
   // Generate the last 7 days ending with today in West Africa Time
   const last7Days = useMemo(() => {
@@ -118,7 +146,7 @@ function Dashboard({ products, orders, profile, onNewOrder }: { products: Produc
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm text-emerald-300">Today at Malt & Lime Nigeria</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Good evening, {profile.name.split(' ')[0]}.</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">{greeting}, {profile.name.split(' ')[0]}.</h1>
           <p className="mt-2 text-sm text-slate-400">Here’s what’s happening across the floor today.</p>
         </div>
         <button onClick={onNewOrder} className="button-primary"><Plus size={17} /> New order</button>
@@ -528,10 +556,28 @@ function Inventory({ products, refresh }: { products: Product[]; refresh: () => 
   );
 }
 
+const TABLES = [
+  'Table 1',
+  'Table 2',
+  'Table 3',
+  'Table 4',
+  'Table 5',
+  'Table 6',
+  'Table 7',
+  'Table 8',
+  'Table 9',
+  'Table 10',
+  'Bar Counter',
+  'VIP Lounge',
+  'Lounge Booth'
+];
+
 function Pos({ products, refresh }: { products: Product[]; refresh: () => void }) {
   const [category, setCategory] = useState('All');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [tab, setTab] = useState('Table 4');
+  const [selectedTable, setSelectedTable] = useState('Table 4');
+  const [customTable, setCustomTable] = useState('');
+  const tab = selectedTable === 'Custom' ? (customTable.trim() || 'Custom') : selectedTable;
   const [message, setMessage] = useState('');
   const [printReceiptOnCheckout, setPrintReceiptOnCheckout] = useState(true);
   const [receiptToPrint, setReceiptToPrint] = useState<any | null>(null);
@@ -581,6 +627,8 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
       setCustomerPhone('');
       setMarketingConsentEmail(false);
       setMarketingConsentWhatsApp(false);
+      setSelectedTable('Table 4');
+      setCustomTable('');
       if (printReceiptOnCheckout) {
         setReceiptToPrint(fullOrder);
       } else {
@@ -601,9 +649,36 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Point of sale</h1>
           <p className="mt-2 text-sm text-slate-400">Tap a product to add it to the open tab.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
-          <span className="px-3 text-xs text-slate-500">Open tab</span>
-          <input value={tab} onChange={e => setTab(e.target.value)} className="w-24 bg-transparent px-2 py-2 text-sm text-white outline-none" />
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+          <span className="px-3 text-xs text-slate-500">Table / Tab</span>
+          <select
+            value={TABLES.includes(selectedTable) ? selectedTable : 'Custom'}
+            onChange={e => {
+              const val = e.target.value;
+              setSelectedTable(val);
+              if (val === 'Custom') {
+                setCustomTable('');
+              }
+            }}
+            className="bg-transparent text-sm text-white outline-none py-1.5 px-2.5 cursor-pointer border-none font-medium focus:ring-0"
+          >
+            {TABLES.map(t => (
+              <option key={t} value={t} className="bg-[#0c1a17] text-white">
+                {t}
+              </option>
+            ))}
+            <option value="Custom" className="bg-[#0c1a17] text-white">Custom...</option>
+          </select>
+
+          {selectedTable === 'Custom' && (
+            <input
+              value={customTable}
+              onChange={e => setCustomTable(e.target.value)}
+              placeholder="Custom name"
+              required
+              className="w-32 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400/60"
+            />
+          )}
         </div>
       </div>
 
