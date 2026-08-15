@@ -593,7 +593,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end print:hidden">
         <div>
           <p className="text-sm text-emerald-300">Service floor</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Point of sale</h1>
@@ -605,7 +605,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px] print:hidden">
         <div>
           <div className="mb-5 flex gap-2 overflow-x-auto">
             {categories.map(item => (
@@ -748,11 +748,11 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
         </div>
       </div>
 
-      {message && <div className="fixed bottom-6 right-6 rounded-xl border border-emerald-400/30 bg-[#11372b] px-5 py-4 text-sm text-emerald-200 shadow-xl">{message}</div>}
+      {message && <div className="fixed bottom-6 right-6 rounded-xl border border-emerald-400/30 bg-[#11372b] px-5 py-4 text-sm text-emerald-200 shadow-xl print:hidden">{message}</div>}
 
       {/* On-Screen High-Fidelity Receipt Modal */}
       {receiptToPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm print:hidden">
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0c1a17] p-6 shadow-2xl relative overflow-hidden flex flex-col">
             <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
               <div>
@@ -926,7 +926,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
                 <span>{item.name}</span>
                 <span>{item.quantity}x</span>
               </div>
-              <div className="flex justify-between text-[10px] text-slate-500 pl-2">
+              <div className="flex justify-between text-[10px] text-gray-600 pl-2">
                 <span>@{money.format(item.unitPrice)}</span>
                 <span>{money.format(item.unitPrice * item.quantity)}</span>
               </div>
@@ -951,6 +951,33 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
             <span>TOTAL:</span>
             <span>{money.format(receiptToPrint.total)}</span>
           </div>
+          {(receiptToPrint.customerEmail || receiptToPrint.customerPhone) && (
+            <>
+              <div className="border-b border-dashed border-black my-3" />
+              <div className="font-bold mb-1">CUSTOMER INFO:</div>
+              {receiptToPrint.customerEmail && (
+                <div className="flex justify-between text-[10px]">
+                  <span>Email:</span>
+                  <span className="truncate max-w-[160px]">{receiptToPrint.customerEmail}</span>
+                </div>
+              )}
+              {receiptToPrint.customerPhone && (
+                <div className="flex justify-between text-[10px]">
+                  <span>Phone:</span>
+                  <span>{receiptToPrint.customerPhone}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[9px] text-gray-600 mt-0.5">
+                <span>Opt-in:</span>
+                <span>
+                  {[
+                    receiptToPrint.marketingConsentEmail ? 'Email' : null,
+                    receiptToPrint.marketingConsentWhatsApp ? 'WhatsApp' : null
+                  ].filter(Boolean).join(', ') || 'None'}
+                </span>
+              </div>
+            </>
+          )}
           <div className="border-b border-dashed border-black my-3" />
           <div className="text-center font-semibold">PAID VIA CASH</div>
           <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>

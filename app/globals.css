@@ -117,3 +117,19 @@ select option:hover {
   background-color: #10b981 !important;
   color: #000000 !important;
 }
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  * {
+    overflow: visible !important;
+  }
+}
