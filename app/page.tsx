@@ -1287,12 +1287,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#07110f] text-white">
-      <aside className={`print:hidden fixed inset-y-0 left-0 z-40 w-64 border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between">
+      {mobile && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobile(false)}
+        />
+      )}
+
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-white/5 bg-[#0a1714] p-5 transition-transform lg:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex shrink-0 items-center justify-between">
           <Logo />
-          <button onClick={() => setMobile(false)} className="text-slate-500 lg:hidden"><X size={19} /></button>
+          <button onClick={() => setMobile(false)} className="text-slate-500 lg:hidden" aria-label="Close menu"><X size={19} /></button>
         </div>
-        <div className="mt-12">
+        <div className="mt-8 flex-1 overflow-y-auto pr-1 min-h-0">
           <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">Workspace</p>
           <nav className="space-y-1">
             {nav.filter(item => {
@@ -1313,7 +1320,7 @@ export default function Home() {
             })}
           </nav>
         </div>
-        <div className="absolute bottom-5 left-5 right-5 border-t border-white/5 pt-5">
+        <div className="shrink-0 border-t border-white/5 pt-4 mt-2">
           <button
             onClick={() => { changeView('settings'); setMobile(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${view === 'settings' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
