@@ -329,6 +329,104 @@ export const api = {
     },
     void: (id: string, data: { reason: string; pin: string }) =>
       apiFetch<{ order: Order }>(`/orders/${id}/void`, { method: 'POST', body: JSON.stringify(data) }),
+    sendReceipt: async (
+      id: string,
+      data: {
+        type: 'email' | 'whatsapp' | 'both';
+        recipientEmail?: string;
+        recipientPhone?: string;
+      }
+    ): Promise<{
+      success: boolean;
+      emailSent: boolean;
+      emailSimulated: boolean;
+      whatsAppSent: boolean;
+      waUrl: string | null;
+      recipientEmail: string | null;
+      recipientPhone: string | null;
+      message: string;
+    }> => {
+      if (offlineMode) {
+        const order = OFFLINE_ORDERS.find((item) => item.id === id);
+        const emailToUse = (data.recipientEmail || order?.customerEmail || '').trim();
+        const phoneToUse = (data.recipientPhone || order?.customerPhone || '').trim();
+
+        if (data.type === 'email' || data.type === 'both') {
+          if (!emailToUse) {
+            throw new ApiError('Customer email address is required', 400);
+          }
+        }
+        if (data.type === 'whatsapp' || data.type === 'both') {
+          if (!phoneToUse) {
+            throw new ApiError('Customer phone number is required', 400);
+          }
+        }
+
+        let cleanPhone = phoneToUse.replace(/\D/g, '');
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = '234' + cleanPhone.slice(1);
+        } else if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) {
+          cleanPhone = '234' + cleanPhone;
+        }
+
+        const formatNGN = (amt: number) => '₦' + Number(amt || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 });
+        const itemLines = (order?.items || [])
+          .map((i) => `• ${i.name} (${i.quantity}x) @ ${formatNGN(i.unitPrice)} = ${formatNGN(i.quantity * i.unitPrice)}`)
+          .join('\n');
+
+        const textMsg = `🍹 *MALT & LIME BAR*
+_Nigeria Operations - Official Receipt_
+
+*Tab:* ${order?.tabName || 'Counter'}
+*Receipt Ref:* ${id}
+
+*ITEMS:*
+${itemLines}
+
+Subtotal: ${formatNGN(order?.subtotal || 0)}
+VAT (7.5%): ${formatNGN(order?.vat || 0)}
+*TOTAL PAID:* ${formatNGN(order?.total || 0)}
+Payment: Cash
+
+Thank you for your patronage! 🥂`;
+
+        const waUrl = (data.type === 'whatsapp' || data.type === 'both') && cleanPhone
+          ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(textMsg)}`
+          : null;
+
+        return {
+          success: true,
+          emailSent: data.type === 'email' || data.type === 'both',
+          emailSimulated: true,
+          whatsAppSent: data.type === 'whatsapp' || data.type === 'both',
+          waUrl,
+          recipientEmail: emailToUse || null,
+          recipientPhone: phoneToUse || null,
+          message: 'Receipt sent (offline simulation)'
+        };
+      }
+      try {
+        return await apiFetch<{
+          success: boolean;
+          emailSent: boolean;
+          emailSimulated: boolean;
+          whatsAppSent: boolean;
+          waUrl: string | null;
+          recipientEmail: string | null;
+          recipientPhone: string | null;
+          message: string;
+        }>(`/orders/${id}/send-receipt`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+          return api.orders.sendReceipt(id, data);
+        }
+        throw error;
+      }
+    },
   },
   shifts: {
     current: async () => {

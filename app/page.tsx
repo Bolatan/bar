@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Beer, Boxes, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, LogOut, Menu, PackagePlus, Plus, Search, Settings, ShoppingCart, Sparkles, Users, X, ShieldAlert, Megaphone } from 'lucide-react';
+import { BarChart3, Beer, Boxes, CheckCircle2, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, LogOut, Mail, Megaphone, Menu, MessageSquare, PackagePlus, Plus, Search, Send, Settings, ShieldAlert, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
@@ -588,6 +588,79 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
   const [marketingConsentEmail, setMarketingConsentEmail] = useState(false);
   const [marketingConsentWhatsApp, setMarketingConsentWhatsApp] = useState(false);
 
+  const [sendEmailInput, setSendEmailInput] = useState('');
+  const [sendPhoneInput, setSendPhoneInput] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [sendFeedback, setSendFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (receiptToPrint) {
+      setSendEmailInput(receiptToPrint.customerEmail || '');
+      setSendPhoneInput(receiptToPrint.customerPhone || '');
+      setSendFeedback(null);
+    }
+  }, [receiptToPrint]);
+
+  async function handleSendEmailReceipt() {
+    if (!receiptToPrint) return;
+    if (!sendEmailInput.trim()) {
+      setSendFeedback({ type: 'error', message: 'Please enter a valid customer email address.' });
+      return;
+    }
+    setIsSendingEmail(true);
+    setSendFeedback(null);
+    try {
+      const res = await api.orders.sendReceipt(receiptToPrint.id, {
+        type: 'email',
+        recipientEmail: sendEmailInput.trim()
+      });
+      setSendFeedback({
+        type: 'success',
+        message: res.emailSimulated
+          ? `Digital receipt sent to ${res.recipientEmail} (Console Simulation)`
+          : `Digital receipt sent successfully to ${res.recipientEmail}`
+      });
+    } catch (err) {
+      setSendFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to send email receipt'
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  }
+
+  async function handleSendWhatsAppReceipt() {
+    if (!receiptToPrint) return;
+    if (!sendPhoneInput.trim()) {
+      setSendFeedback({ type: 'error', message: 'Please enter a valid phone or WhatsApp number.' });
+      return;
+    }
+    setIsSendingWhatsApp(true);
+    setSendFeedback(null);
+    try {
+      const res = await api.orders.sendReceipt(receiptToPrint.id, {
+        type: 'whatsapp',
+        recipientPhone: sendPhoneInput.trim()
+      });
+      if (res.waUrl) {
+        window.open(res.waUrl, '_blank');
+      }
+      setSendFeedback({
+        type: 'success',
+        message: `WhatsApp receipt generated for ${res.recipientPhone || sendPhoneInput}`
+      });
+    } catch (err) {
+      setSendFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to send WhatsApp receipt'
+      });
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  }
+
   const visible = products.filter(p => category === 'All' || p.category === category);
   const subtotal = cart.reduce((s, p) => s + p.sellingPrice * p.quantity, 0);
   const vat = subtotal * .075;
@@ -939,8 +1012,81 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               <div className="text-center mt-3 text-[10px]">Thank you for your patronage!</div>
             </div>
 
+            {/* Digital Receipt Dispatch Options */}
+            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                  <Send size={13} /> Send Digital Receipt
+                </span>
+                <span className="text-[10px] text-emerald-400/80 font-medium">Email & WhatsApp</span>
+              </div>
+
+              {/* Email Input & Send */}
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-300 font-medium block">Recipient Email</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      placeholder="customer@example.com"
+                      value={sendEmailInput}
+                      onChange={(e) => setSendEmailInput(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-white/10 bg-black/40 pl-8 pr-2 text-xs text-white outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSendEmailReceipt}
+                    disabled={isSendingEmail}
+                    className="h-9 px-3 rounded-lg bg-emerald-500 text-slate-950 font-semibold text-xs hover:bg-emerald-400 transition flex items-center gap-1 disabled:opacity-50 shrink-0"
+                  >
+                    <Mail size={13} /> {isSendingEmail ? 'Sending...' : 'Email'}
+                  </button>
+                </div>
+              </div>
+
+              {/* WhatsApp Input & Send */}
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-300 font-medium block">Recipient WhatsApp Number</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <MessageSquare size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="e.g. 08012345678"
+                      value={sendPhoneInput}
+                      onChange={(e) => setSendPhoneInput(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-white/10 bg-black/40 pl-8 pr-2 text-xs text-white outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsAppReceipt}
+                    disabled={isSendingWhatsApp}
+                    className="h-9 px-3 rounded-lg bg-emerald-600 text-white font-semibold text-xs hover:bg-emerald-500 transition flex items-center gap-1 disabled:opacity-50 shrink-0"
+                  >
+                    <MessageSquare size={13} /> {isSendingWhatsApp ? 'Sending...' : 'WhatsApp'}
+                  </button>
+                </div>
+              </div>
+
+              {sendFeedback && (
+                <div
+                  className={`flex items-start gap-2 p-2 rounded-lg text-xs ${
+                    sendFeedback.type === 'success'
+                      ? 'bg-emerald-400/20 text-emerald-200 border border-emerald-400/30'
+                      : 'bg-red-400/20 text-red-200 border border-red-400/30'
+                  }`}
+                >
+                  {sendFeedback.type === 'success' && <CheckCircle2 size={15} className="text-emerald-300 shrink-0 mt-0.5" />}
+                  <span>{sendFeedback.message}</span>
+                </div>
+              )}
+            </div>
+
             {/* Actions */}
-            <div className="mt-5 space-y-2">
+            <div className="mt-4 space-y-2">
               <button
                 type="button"
                 onClick={() => {
