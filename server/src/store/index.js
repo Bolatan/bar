@@ -9,6 +9,7 @@ require('../models/StockMovement');
 require('../models/Order');
 require('../models/Shift');
 require('../models/AuditLog');
+require('../models/Customer');
 
 let mongoConnected = false;
 function setMongoConnected(v) { mongoConnected = v; }
@@ -22,6 +23,7 @@ const memory = {
   orders: [],
   shifts: [],
   auditLogs: [],
+  customers: [],
 };
 
 function genId() {
@@ -71,6 +73,54 @@ async function seedMemory() {
     updatedAt: now(),
     toJSON() { return strip(this); },
   }));
+
+  memory.customers = [
+    {
+      _id: genId(),
+      name: 'John Okafor',
+      email: 'john@maltlime.ng',
+      phone: '08012345678',
+      marketingConsentEmail: true,
+      marketingConsentWhatsApp: true,
+      notes: 'Lekki Regular Customer',
+      orderCount: 3,
+      totalSpent: 18500,
+      lastOrderDate: new Date(Date.now() - 3600000 * 4),
+      createdAt: now(),
+      updatedAt: now(),
+      toJSON() { return strip(this); }
+    },
+    {
+      _id: genId(),
+      name: 'Chinwe Adebayo',
+      email: 'chinwe@lounge.ng',
+      phone: '08169998888',
+      marketingConsentEmail: true,
+      marketingConsentWhatsApp: false,
+      notes: 'Prefers Champagne & VIP Lounge',
+      orderCount: 1,
+      totalSpent: 65000,
+      lastOrderDate: new Date(Date.now() - 3600000 * 24),
+      createdAt: now(),
+      updatedAt: now(),
+      toJSON() { return strip(this); }
+    },
+    {
+      _id: genId(),
+      name: 'Femi Balogun',
+      email: '',
+      phone: '09077776666',
+      marketingConsentEmail: false,
+      marketingConsentWhatsApp: true,
+      notes: 'Weekend Bar Patron',
+      orderCount: 5,
+      totalSpent: 42000,
+      lastOrderDate: new Date(Date.now() - 3600000 * 48),
+      createdAt: now(),
+      updatedAt: now(),
+      toJSON() { return strip(this); }
+    }
+  ];
 }
 
 function strip(obj) {
@@ -332,6 +382,137 @@ const store = {
       }).sort({ createdAt: -1 });
     }
     return memory.orders.filter(o => o.customerEmail || o.customerPhone);
+  },
+
+  // ---- Customers ----
+  async findCustomers() {
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      return Customer.find().sort({ updatedAt: -1, createdAt: -1 });
+    }
+    return [...memory.customers].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+  },
+  async findCustomerById(id) {
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      return Customer.findById(id);
+    }
+    return findDoc('customers', id) || null;
+  },
+  async createCustomer(data) {
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      return Customer.create(data);
+    }
+    const customer = {
+      _id: genId(),
+      name: data.name || '',
+      email: (data.email || '').trim().toLowerCase(),
+      phone: (data.phone || '').trim(),
+      marketingConsentEmail: data.marketingConsentEmail ?? true,
+      marketingConsentWhatsApp: data.marketingConsentWhatsApp ?? true,
+      notes: data.notes || '',
+      orderCount: data.orderCount || 0,
+      totalSpent: data.totalSpent || 0,
+      lastOrderDate: data.lastOrderDate || now(),
+      createdAt: now(),
+      updatedAt: now(),
+      toJSON() { return strip(this); }
+    };
+    memory.customers.push(customer);
+    return customer;
+  },
+  async updateCustomer(id, data) {
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      return Customer.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true });
+    }
+    const customer = findDoc('customers', id);
+    if (!customer) return null;
+    Object.assign(customer, data, { updatedAt: now() });
+    return customer;
+  },
+  async deleteCustomer(id) {
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      return Customer.findByIdAndDelete(id);
+    }
+    const idx = memory.customers.findIndex((c) => c._id === id);
+    if (idx === -1) return null;
+    return memory.customers.splice(idx, 1)[0];
+  },
+  async upsertCustomerFromOrder({ email, phone, marketingConsentEmail, marketingConsentWhatsApp, total, paidAt }) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPhone = (phone || '').trim();
+    if (!cleanEmail && !cleanPhone) return null;
+
+    const orderSpent = total || 0;
+    const orderDate = paidAt || now();
+
+    if (isMongo()) {
+      const Customer = require('../models/Customer');
+      let query = [];
+      if (cleanEmail) query.push({ email: cleanEmail });
+      if (cleanPhone) query.push({ phone: cleanPhone });
+
+      let existing = await Customer.findOne({ $or: query });
+      if (existing) {
+        existing.orderCount = (existing.orderCount || 0) + 1;
+        existing.totalSpent = (existing.totalSpent || 0) + orderSpent;
+        existing.lastOrderDate = orderDate;
+        if (cleanEmail && !existing.email) existing.email = cleanEmail;
+        if (cleanPhone && !existing.phone) existing.phone = cleanPhone;
+        if (marketingConsentEmail !== undefined) existing.marketingConsentEmail = marketingConsentEmail;
+        if (marketingConsentWhatsApp !== undefined) existing.marketingConsentWhatsApp = marketingConsentWhatsApp;
+        return existing.save();
+      } else {
+        const defaultName = cleanEmail ? cleanEmail.split('@')[0] : 'Guest';
+        return Customer.create({
+          name: defaultName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          marketingConsentEmail: marketingConsentEmail ?? true,
+          marketingConsentWhatsApp: marketingConsentWhatsApp ?? true,
+          orderCount: 1,
+          totalSpent: orderSpent,
+          lastOrderDate: orderDate
+        });
+      }
+    } else {
+      let existing = memory.customers.find(c =>
+        (cleanEmail && c.email === cleanEmail) || (cleanPhone && c.phone === cleanPhone)
+      );
+      if (existing) {
+        existing.orderCount = (existing.orderCount || 0) + 1;
+        existing.totalSpent = (existing.totalSpent || 0) + orderSpent;
+        existing.lastOrderDate = orderDate;
+        if (cleanEmail && !existing.email) existing.email = cleanEmail;
+        if (cleanPhone && !existing.phone) existing.phone = cleanPhone;
+        if (marketingConsentEmail !== undefined) existing.marketingConsentEmail = marketingConsentEmail;
+        if (marketingConsentWhatsApp !== undefined) existing.marketingConsentWhatsApp = marketingConsentWhatsApp;
+        existing.updatedAt = now();
+        return existing;
+      } else {
+        const defaultName = cleanEmail ? cleanEmail.split('@')[0] : 'Guest';
+        const customer = {
+          _id: genId(),
+          name: defaultName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          marketingConsentEmail: marketingConsentEmail ?? true,
+          marketingConsentWhatsApp: marketingConsentWhatsApp ?? true,
+          notes: '',
+          orderCount: 1,
+          totalSpent: orderSpent,
+          lastOrderDate: orderDate,
+          createdAt: now(),
+          updatedAt: now(),
+          toJSON() { return strip(this); }
+        };
+        memory.customers.push(customer);
+        return customer;
+      }
+    }
   },
 
   // ---- Shifts ----

@@ -41,6 +41,7 @@ app.use('/api/orders', auth, require('./routes/orders'));
 app.use('/api/shifts', auth, require('./routes/shifts'));
 app.use('/api/reports', auth, require('./routes/reports'));
 app.use('/api/campaigns', auth, require('./routes/campaigns'));
+app.use('/api/customers', auth, require('./routes/customers'));
 
 app.get('/api/health', (_req, res) => {
   res.json({

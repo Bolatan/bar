@@ -10,14 +10,35 @@ router.use(requireAuth, requireRole('owner', 'manager'));
 
 /**
  * GET /api/campaigns/contacts
- * Returns a list of unique customer contacts collected from paid orders
+ * Returns a list of unique customer contacts collected from Customer store and paid orders
  */
 router.get('/contacts', async (req, res, next) => {
   try {
+    const customers = await store.findCustomers();
     const orders = await store.findCollectedContacts();
 
-    // Group contacts by unique email or phone
+    // Map existing customer records by email and phone
     const contactsMap = new Map();
+
+    for (const c of customers) {
+      const cObj = typeof c.toJSON === 'function' ? c.toJSON() : c;
+      const email = (cObj.email || '').trim().toLowerCase();
+      const phone = (cObj.phone || '').trim();
+      const key = email || phone || cObj.id || cObj._id;
+
+      contactsMap.set(key, {
+        id: cObj.id || cObj._id,
+        name: cObj.name || (email ? email.split('@')[0] : 'Guest'),
+        email: email || '',
+        phone: phone || '',
+        marketingConsentEmail: cObj.marketingConsentEmail !== false,
+        marketingConsentWhatsApp: cObj.marketingConsentWhatsApp !== false,
+        notes: cObj.notes || '',
+        orderCount: cObj.orderCount || 0,
+        totalSpent: cObj.totalSpent || 0,
+        lastOrderDate: cObj.lastOrderDate || cObj.updatedAt || cObj.createdAt
+      });
+    }
 
     for (const order of orders) {
       const email = (order.customerEmail || '').trim().toLowerCase();
@@ -25,15 +46,17 @@ router.get('/contacts', async (req, res, next) => {
 
       if (!email && !phone) continue;
 
-      // Primary key for grouping
       const key = email || phone;
 
       if (!contactsMap.has(key)) {
         contactsMap.set(key, {
+          id: `order-cust-${key}`,
+          name: email ? email.split('@')[0] : 'Guest',
           email: email || '',
           phone: phone || '',
           marketingConsentEmail: order.marketingConsentEmail || false,
           marketingConsentWhatsApp: order.marketingConsentWhatsApp || false,
+          notes: '',
           orderCount: 0,
           totalSpent: 0,
           lastOrderDate: order.paidAt || order.createdAt
@@ -45,14 +68,9 @@ router.get('/contacts', async (req, res, next) => {
       contact.totalSpent += order.total || 0;
 
       const orderDate = new Date(order.paidAt || order.createdAt);
-      const currentLastDate = new Date(contact.lastOrderDate);
+      const currentLastDate = new Date(contact.lastOrderDate || 0);
       if (orderDate > currentLastDate) {
         contact.lastOrderDate = order.paidAt || order.createdAt;
-        // Keep latest contact information and consents
-        if (email) contact.email = email;
-        if (phone) contact.phone = phone;
-        contact.marketingConsentEmail = order.marketingConsentEmail || false;
-        contact.marketingConsentWhatsApp = order.marketingConsentWhatsApp || false;
       }
     }
 
@@ -115,7 +133,6 @@ router.post('/send-email', async (req, res, next) => {
         await transporter.verify();
 
         // Send actual mail to multiple recipients (sending individually or in bulk)
-        // For simple newsletter, BCCing or sending a bulk message is standard
         await transporter.sendMail({
           from: smtpFrom,
           bcc: recipients.join(','),

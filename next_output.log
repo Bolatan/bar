@@ -5,15 +5,15 @@
   ▲ Next.js 13.5.1
   - Local:        http://localhost:3000
 
- ✓ Ready in 2.1s
- ○ compiling /page ...
+ ✓ Ready in 1940ms
 Browserslist: caniuse-lite is outdated. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
- ✓ Compiled /page in 7.8s (561 modules)
+ ○ compiling /page ...
+ ✓ Compiled /page in 6.2s (563 modules)
 
  ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
- ✓ Compiled in 1433ms (286 modules)
- ✓ Compiled /not-found in 1344ms (541 modules)
+ ✓ Compiled in 1165ms (287 modules)
+ ✓ Compiled /not-found in 649ms (543 modules)
 
  ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
