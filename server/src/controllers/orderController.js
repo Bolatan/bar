@@ -312,21 +312,23 @@ async function sendReceipt(req, res, next) {
         .map((i) => `• ${i.name} (${i.quantity}x) @ ${formatNGN(i.unitPrice)} = ${formatNGN(i.quantity * i.unitPrice)}`)
         .join('\n');
 
-      const textMsg = `🍹 *MALT & LIME BAR*
-_Nigeria Operations - Official Receipt_
+      const textMsg = `🧾 *MALT & LIME BAR*
+_Nigeria Operations - Thermal Receipt_
+12 Admiralty Way, Lekki Phase 1, Lagos
 
-*Tab:* ${orderObj.tabName || 'Counter'}
+--------------------------------
 *Date:* ${formattedDate}
-*Receipt Ref:* ${orderObj.id || orderObj._id}
-
+*Tab:* ${orderObj.tabName || 'Counter'}
+*Ref:* ${orderObj.id || orderObj._id}
+--------------------------------
 *ITEMS:*
 ${itemLines}
-
-Subtotal: ${formatNGN(orderObj.subtotal)}
+--------------------------------
+SUBTOTAL: ${formatNGN(orderObj.subtotal)}
 VAT (7.5%): ${formatNGN(orderObj.vat)}
-${orderObj.discount > 0 ? `Discount: -${formatNGN(orderObj.discount)}\n` : ''}*TOTAL PAID:* ${formatNGN(orderObj.total)}
-Payment: Cash
-
+${orderObj.discount > 0 ? `DISCOUNT: -${formatNGN(orderObj.discount)}\n` : ''}*TOTAL PAID:* ${formatNGN(orderObj.total)}
+--------------------------------
+PAID VIA CASH
 Thank you for your patronage! 🥂`;
 
       waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(textMsg)}`;

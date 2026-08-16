@@ -370,24 +370,32 @@ export const api = {
         }
 
         const formatNGN = (amt: number) => '₦' + Number(amt || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 });
+        const formattedDate = new Date(order?.paidAt || order?.createdAt || Date.now()).toLocaleString('en-NG', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+          timeZone: 'Africa/Lagos'
+        });
         const itemLines = (order?.items || [])
           .map((i) => `• ${i.name} (${i.quantity}x) @ ${formatNGN(i.unitPrice)} = ${formatNGN(i.quantity * i.unitPrice)}`)
           .join('\n');
 
-        const textMsg = `🍹 *MALT & LIME BAR*
-_Nigeria Operations - Official Receipt_
+        const textMsg = `🧾 *MALT & LIME BAR*
+_Nigeria Operations - Thermal Receipt_
+12 Admiralty Way, Lekki Phase 1, Lagos
 
+--------------------------------
+*Date:* ${formattedDate}
 *Tab:* ${order?.tabName || 'Counter'}
-*Receipt Ref:* ${id}
-
+*Ref:* ${id}
+--------------------------------
 *ITEMS:*
 ${itemLines}
-
-Subtotal: ${formatNGN(order?.subtotal || 0)}
+--------------------------------
+SUBTOTAL: ${formatNGN(order?.subtotal || 0)}
 VAT (7.5%): ${formatNGN(order?.vat || 0)}
-*TOTAL PAID:* ${formatNGN(order?.total || 0)}
-Payment: Cash
-
+${order?.discount && order.discount > 0 ? `DISCOUNT: -${formatNGN(order.discount)}\n` : ''}*TOTAL PAID:* ${formatNGN(order?.total || 0)}
+--------------------------------
+PAID VIA CASH
 Thank you for your patronage! 🥂`;
 
         const waUrl = (data.type === 'whatsapp' || data.type === 'both') && cleanPhone
