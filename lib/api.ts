@@ -6,6 +6,8 @@ let accessToken: Token = null;
 let refreshToken: Token = null;
 
 const STORAGE_KEY = 'ml_auth';
+const OFFLINE_CUSTOMERS_KEY = 'ml_offline_customers';
+
 const OFFLINE_PRODUCTS: Product[] = [
   { id: 'offline-star', name: 'Star Lager', category: 'Beer', unit: 'bottle', costPrice: 650, sellingPrice: 1500, stockQuantity: 84, reorderThreshold: 24, isActive: true },
   { id: 'offline-gulder', name: 'Gulder Lager', category: 'Beer', unit: 'bottle', costPrice: 700, sellingPrice: 1600, stockQuantity: 42, reorderThreshold: 18, isActive: true },
@@ -30,6 +32,29 @@ let OFFLINE_SHIFTS: Shift[] = [];
 let OFFLINE_CURRENT_SHIFT: Shift | null = null;
 let offlineMode = false;
 let offlineUser: Profile | null = null;
+
+function getOfflineCustomers(): Customer[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(OFFLINE_CUSTOMERS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  const initial: Customer[] = [
+    { id: 'off-cust-1', name: 'John Okafor', email: 'john@maltlime.ng', phone: '08012345678', marketingConsentEmail: true, marketingConsentWhatsApp: true, notes: 'Lekki Regular Customer', orderCount: 3, totalSpent: 18500, lastOrderDate: new Date(Date.now() - 3600000 * 4).toISOString() },
+    { id: 'off-cust-2', name: 'Chinwe Adebayo', email: 'chinwe@lounge.ng', phone: '08169998888', marketingConsentEmail: true, marketingConsentWhatsApp: false, notes: 'Prefers Champagne & VIP Lounge', orderCount: 1, totalSpent: 65000, lastOrderDate: new Date(Date.now() - 3600000 * 24).toISOString() },
+    { id: 'off-cust-3', name: 'Femi Balogun', email: '', phone: '09077776666', marketingConsentEmail: false, marketingConsentWhatsApp: true, notes: 'Weekend Bar Patron', orderCount: 5, totalSpent: 42000, lastOrderDate: new Date(Date.now() - 3600000 * 48).toISOString() }
+  ];
+  saveOfflineCustomers(initial);
+  return initial;
+}
+
+function saveOfflineCustomers(customers: Customer[]) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(OFFLINE_CUSTOMERS_KEY, JSON.stringify(customers));
+    } catch {}
+  }
+}
 
 export function loadTokens(): { token: string; refreshToken: string; user?: Profile } | null {
   if (typeof window === 'undefined') return null;
@@ -323,6 +348,36 @@ export const api = {
         order.marketingConsentWhatsApp = data.marketingConsentWhatsApp || false;
         order.status = 'paid';
         order.paidAt = new Date().toISOString();
+
+        if (data.customerEmail || data.customerPhone) {
+          const cleanEmail = (data.customerEmail || '').trim().toLowerCase();
+          const cleanPhone = (data.customerPhone || '').trim();
+          const customers = getOfflineCustomers();
+          const existing = customers.find(c => (cleanEmail && c.email === cleanEmail) || (cleanPhone && c.phone === cleanPhone));
+          if (existing) {
+            existing.orderCount = (existing.orderCount || 0) + 1;
+            existing.totalSpent = (existing.totalSpent || 0) + order.total;
+            existing.lastOrderDate = order.paidAt;
+            if (cleanEmail && !existing.email) existing.email = cleanEmail;
+            if (cleanPhone && !existing.phone) existing.phone = cleanPhone;
+            if (data.marketingConsentEmail !== undefined) existing.marketingConsentEmail = !!data.marketingConsentEmail;
+            if (data.marketingConsentWhatsApp !== undefined) existing.marketingConsentWhatsApp = !!data.marketingConsentWhatsApp;
+          } else {
+            customers.unshift({
+              id: `off-cust-${Date.now()}`,
+              name: cleanEmail ? cleanEmail.split('@')[0] : 'Guest',
+              email: cleanEmail,
+              phone: cleanPhone,
+              marketingConsentEmail: !!data.marketingConsentEmail,
+              marketingConsentWhatsApp: !!data.marketingConsentWhatsApp,
+              orderCount: 1,
+              totalSpent: order.total,
+              lastOrderDate: order.paidAt
+            });
+          }
+          saveOfflineCustomers(customers);
+        }
+
         return { order };
       }
       return apiFetch<{ order: Order }>(`/orders/${id}/checkout`, { method: 'POST', body: JSON.stringify(data) });
@@ -695,6 +750,76 @@ Thank you for your patronage! 🥂`;
       return apiFetch<{ message: string }>(`/users/${id}`, { method: 'DELETE' });
     }
   },
+  customers: {
+    list: async () => {
+      try {
+        return await apiFetch<{ customers: Customer[] }>('/customers');
+      } catch (error) {
+        if (isOfflineFallbackError(error)) {
+          offlineMode = true;
+          return { customers: getOfflineCustomers() };
+        }
+        throw error;
+      }
+    },
+    create: async (data: Partial<Customer>) => {
+      if (offlineMode) {
+        const customers = getOfflineCustomers();
+        const cleanEmail = (data.email || '').trim().toLowerCase();
+        const cleanPhone = (data.phone || '').trim();
+        const newCustomer: Customer = {
+          id: `off-cust-${Date.now()}`,
+          name: (data.name || '').trim() || (cleanEmail ? cleanEmail.split('@')[0] : 'Guest'),
+          email: cleanEmail,
+          phone: cleanPhone,
+          marketingConsentEmail: data.marketingConsentEmail !== false,
+          marketingConsentWhatsApp: data.marketingConsentWhatsApp !== false,
+          notes: data.notes || '',
+          orderCount: data.orderCount || 0,
+          totalSpent: data.totalSpent || 0,
+          lastOrderDate: data.lastOrderDate || new Date().toISOString()
+        };
+        customers.unshift(newCustomer);
+        saveOfflineCustomers(customers);
+        return { customer: newCustomer };
+      }
+      return apiFetch<{ customer: Customer }>('/customers', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    update: async (id: string, data: Partial<Customer>) => {
+      if (offlineMode) {
+        const customers = getOfflineCustomers();
+        const index = customers.findIndex(c => (c.id || c._id) === id);
+        if (index !== -1) {
+          customers[index] = { ...customers[index], ...data };
+          saveOfflineCustomers(customers);
+          return { customer: customers[index] };
+        }
+        throw new ApiError('Customer not found', 404);
+      }
+      return apiFetch<{ customer: Customer }>(`/customers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+    },
+    remove: async (id: string) => {
+      if (offlineMode) {
+        let customers = getOfflineCustomers();
+        const initialLen = customers.length;
+        customers = customers.filter(c => (c.id || c._id) !== id);
+        if (customers.length === initialLen) {
+          throw new ApiError('Customer not found', 404);
+        }
+        saveOfflineCustomers(customers);
+        return { message: 'Customer removed' };
+      }
+      return apiFetch<{ message: string }>(`/customers/${id}`, {
+        method: 'DELETE'
+      });
+    }
+  },
   auditLogs: {
     list: async () => {
       try {
@@ -711,13 +836,22 @@ Thank you for your patronage! 🥂`;
   campaigns: {
     contacts: async () => {
       try {
-        return await apiFetch<{ contacts: any[] }>('/campaigns/contacts');
+        return await apiFetch<{ contacts: Customer[] }>('/campaigns/contacts');
       } catch (error) {
         if (isOfflineFallbackError(error)) {
           offlineMode = true;
 
+          const offlineCusts = getOfflineCustomers();
+          const contactsMap = new Map<string, Customer>();
+
+          offlineCusts.forEach(c => {
+            const key = (c.email || c.phone || c.id || c._id || '').trim().toLowerCase();
+            if (key) {
+              contactsMap.set(key, { ...c });
+            }
+          });
+
           // Fallback: extract unique contacts from OFFLINE_ORDERS
-          const contactsMap = new Map<string, any>();
           OFFLINE_ORDERS.forEach(order => {
             const email = (order.customerEmail || '').trim().toLowerCase();
             const phone = (order.customerPhone || '').trim();
@@ -726,6 +860,8 @@ Thank you for your patronage! 🥂`;
               const key = email || phone;
               if (!contactsMap.has(key)) {
                 contactsMap.set(key, {
+                  id: `order-cust-${key}`,
+                  name: email ? email.split('@')[0] : 'Guest',
                   email: email || '',
                   phone: phone || '',
                   marketingConsentEmail: order.marketingConsentEmail || false,
@@ -735,50 +871,15 @@ Thank you for your patronage! 🥂`;
                   lastOrderDate: order.paidAt || order.createdAt
                 });
               }
-              const contact = contactsMap.get(key);
+              const contact = contactsMap.get(key)!;
               contact.orderCount += 1;
               contact.totalSpent += order.total || 0;
               const orderDate = new Date(order.paidAt || order.createdAt);
-              if (orderDate > new Date(contact.lastOrderDate)) {
+              if (orderDate > new Date(contact.lastOrderDate || 0)) {
                 contact.lastOrderDate = order.paidAt || order.createdAt;
-                if (email) contact.email = email;
-                if (phone) contact.phone = phone;
-                contact.marketingConsentEmail = order.marketingConsentEmail || false;
-                contact.marketingConsentWhatsApp = order.marketingConsentWhatsApp || false;
               }
             }
           });
-
-          // Add beautiful default offline marketing contacts for demo
-          if (contactsMap.size === 0) {
-            contactsMap.set('john@maltlime.ng', {
-              email: 'john@maltlime.ng',
-              phone: '08012345678',
-              marketingConsentEmail: true,
-              marketingConsentWhatsApp: true,
-              orderCount: 3,
-              totalSpent: 18500,
-              lastOrderDate: new Date(Date.now() - 3600000 * 4).toISOString()
-            });
-            contactsMap.set('chinwe@lounge.ng', {
-              email: 'chinwe@lounge.ng',
-              phone: '08169998888',
-              marketingConsentEmail: true,
-              marketingConsentWhatsApp: false,
-              orderCount: 1,
-              totalSpent: 65000,
-              lastOrderDate: new Date(Date.now() - 3600000 * 24).toISOString()
-            });
-            contactsMap.set('femi@bar.ng', {
-              email: '',
-              phone: '09077776666',
-              marketingConsentEmail: false,
-              marketingConsentWhatsApp: true,
-              orderCount: 5,
-              totalSpent: 42000,
-              lastOrderDate: new Date(Date.now() - 3600000 * 48).toISOString()
-            });
-          }
 
           return { contacts: Array.from(contactsMap.values()) };
         }
@@ -877,4 +978,17 @@ export type AuditLog = {
   entityId: string | null;
   details: any;
   createdAt: string;
+};
+export type Customer = {
+  id?: string;
+  _id?: string;
+  name: string;
+  email: string;
+  phone: string;
+  marketingConsentEmail: boolean;
+  marketingConsentWhatsApp: boolean;
+  notes?: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderDate?: string;
 };

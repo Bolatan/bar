@@ -64,6 +64,17 @@ async function checkout(req, res, next) {
     order.marketingConsentWhatsApp = !!data.marketingConsentWhatsApp;
     await store.saveOrder(order);
 
+    if (data.customerEmail || data.customerPhone) {
+      await store.upsertCustomerFromOrder({
+        email: data.customerEmail,
+        phone: data.customerPhone,
+        marketingConsentEmail: !!data.marketingConsentEmail,
+        marketingConsentWhatsApp: !!data.marketingConsentWhatsApp,
+        total,
+        paidAt: order.paidAt
+      });
+    }
+
     for (const item of order.items) {
       const product = await store.findProductById(item.productId);
       if (product) {
