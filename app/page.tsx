@@ -641,34 +641,52 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
     setIsSendingWhatsApp(true);
     setSendFeedback(null);
     try {
-      let pngDataUrl = '';
-      try {
-        pngDataUrl = await generateReceiptPngDataUrl(receiptToPrint);
-      } catch (e) {
-        console.warn('PNG generation failed, proceeding with text receipt:', e);
-      }
-
-      if (pngDataUrl) {
-        const link = document.createElement('a');
-        link.href = pngDataUrl;
-        link.download = `receipt-${receiptToPrint.id || 'maltlime'}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-
       const res = await api.orders.sendReceipt(receiptToPrint.id, {
         type: 'whatsapp',
         recipientPhone: sendPhoneInput.trim()
       });
 
+      let pngFile: File | null = null;
+      try {
+        const pngDataUrl = await generateReceiptPngDataUrl(receiptToPrint);
+        if (pngDataUrl) {
+          const fetchRes = await fetch(pngDataUrl);
+          const blob = await fetchRes.blob();
+          pngFile = new File([blob], `receipt-${receiptToPrint.id || 'maltlime'}.png`, { type: 'image/png' });
+        }
+      } catch (e) {
+        console.warn('PNG generation failed, proceeding with text receipt:', e);
+      }
+
+      let textMsg = '';
       if (res.waUrl) {
+        try {
+          const urlObj = new URL(res.waUrl);
+          textMsg = urlObj.searchParams.get('text') || '';
+        } catch {}
+      }
+
+      let sharedViaWebShare = false;
+      if (pngFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pngFile] })) {
+        try {
+          await navigator.share({
+            files: [pngFile],
+            title: `Receipt - ${receiptToPrint.tabName || 'Malt & Lime'}`,
+            text: textMsg
+          });
+          sharedViaWebShare = true;
+        } catch (shareErr) {
+          console.warn('Web Share was canceled or failed, falling back to WhatsApp deep link:', shareErr);
+        }
+      }
+
+      if (!sharedViaWebShare && res.waUrl) {
         window.open(res.waUrl, '_blank');
       }
 
       setSendFeedback({
         type: 'success',
-        message: `WhatsApp receipt (PNG downloaded & text formatted) ready for ${res.recipientPhone || sendPhoneInput}`
+        message: `WhatsApp receipt ready for ${res.recipientPhone || sendPhoneInput}`
       });
     } catch (err) {
       setSendFeedback({
