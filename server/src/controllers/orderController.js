@@ -166,7 +166,7 @@ async function sendReceipt(req, res, next) {
     const orderObj = typeof order.toJSON === 'function' ? order.toJSON() : order;
     const formatNGN = (amt) => '₦' + Number(amt || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 });
     const formattedDate = new Date(orderObj.paidAt || orderObj.createdAt || Date.now()).toLocaleString('en-NG', {
-      dateStyle: 'medium',
+      dateStyle: 'short',
       timeStyle: 'short',
       timeZone: 'Africa/Lagos'
     });
@@ -178,77 +178,157 @@ async function sendReceipt(req, res, next) {
       const itemsHtml = (orderObj.items || [])
         .map(
           (item) => `
-          <div style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-            <div style="display: flex; justify-content: space-between; font-weight: 500; color: #f8fafc;">
-              <span>${item.name}</span>
-              <span>${item.quantity}x</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 2px;">
-              <span>@ ${formatNGN(item.unitPrice)}</span>
-              <span>${formatNGN(item.unitPrice * item.quantity)}</span>
-            </div>
+          <div style="margin-bottom: 6px;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #111827;">
+              <tr>
+                <td align="left" style="font-weight: 500;">${item.name}</td>
+                <td align="right" style="font-weight: 500;">${item.quantity}x</td>
+              </tr>
+              <tr>
+                <td align="left" style="font-size: 10px; color: #555555; padding-left: 8px;">@ ${formatNGN(item.unitPrice)}</td>
+                <td align="right" style="font-size: 10px; color: #555555;">${formatNGN(item.unitPrice * item.quantity)}</td>
+              </tr>
+            </table>
           </div>
         `
         )
         .join('');
+
+      const optIns = [
+        orderObj.marketingConsentEmail ? 'Email' : null,
+        orderObj.marketingConsentWhatsApp ? 'WhatsApp' : null
+      ].filter(Boolean).join(', ') || 'None';
+
+      const hasCustomerInfo = orderObj.customerEmail || orderObj.customerPhone;
+
+      const customerInfoHtml = hasCustomerInfo
+        ? `
+          <div style="border-top: 1px dashed #000000; margin: 12px 0;"></div>
+          <div style="font-weight: bold; margin-bottom: 4px;">CUSTOMER INFO:</div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" style="width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #111827;">
+            ${
+              orderObj.customerEmail
+                ? `<tr>
+                    <td align="left" style="padding-bottom: 2px;">Email:</td>
+                    <td align="right" style="padding-bottom: 2px; word-break: break-all;">${orderObj.customerEmail}</td>
+                  </tr>`
+                : ''
+            }
+            ${
+              orderObj.customerPhone
+                ? `<tr>
+                    <td align="left" style="padding-bottom: 2px;">Phone:</td>
+                    <td align="right" style="padding-bottom: 2px;">${orderObj.customerPhone}</td>
+                  </tr>`
+                : ''
+            }
+            <tr>
+              <td align="left" style="color: #555555;">Opt-in:</td>
+              <td align="right" style="color: #555555;">${optIns}</td>
+            </tr>
+          </table>
+        `
+        : '';
 
       const htmlBody = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Receipt - Malt & Lime Bar</title>
         </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #07110f; color: #ffffff; padding: 24px; margin: 0;">
-          <div style="max-width: 460px; margin: 0 auto; background-color: #0c1a17; border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 28px;">
-            <div style="text-align: center; margin-bottom: 24px; border-bottom: 1px dashed rgba(255,255,255,0.15); padding-bottom: 20px;">
-              <div style="font-size: 22px; font-weight: bold; color: #34d399; letter-spacing: -0.5px;">MALT & LIME BAR</div>
-              <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-top: 4px;">Nigeria Operations</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">12 Admiralty Way, Lekki Phase 1, Lagos</div>
+        <body style="font-family: 'Courier New', Courier, monospace; background-color: #07110f; color: #111827; padding: 20px 10px; margin: 0;">
+          <div style="max-width: 360px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #111827; line-height: 1.5;">
+
+            <!-- Header -->
+            <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">
+              MALT &amp; LIME BAR
+            </div>
+            <div style="text-align: center; font-size: 11px; text-transform: uppercase; color: #333333; margin-top: 2px;">
+              NIGERIA OPERATIONS
+            </div>
+            <div style="text-align: center; font-size: 10px; color: #555555; margin-top: 2px;">
+              12 Admiralty Way, Lekki Phase 1
+            </div>
+            <div style="text-align: center; font-size: 10px; color: #555555;">
+              Lagos, Nigeria
             </div>
 
-            <div style="margin-bottom: 16px; font-size: 13px;">
-              <div style="display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 4px;">
-                <span>Tab:</span> <strong>${orderObj.tabName || 'Counter'}</strong>
-              </div>
-              <div style="display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 4px;">
-                <span>Date:</span> <span>${formattedDate}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; color: #cbd5e1;">
-                <span>Receipt Ref:</span> <span style="font-family: monospace;">${orderObj.id || orderObj._id}</span>
-              </div>
-            </div>
+            <!-- Dashed Separator -->
+            <div style="border-top: 1px dashed #000000; margin: 12px 0;"></div>
 
-            <div style="border-top: 1px dashed rgba(255,255,255,0.15); margin: 16px 0;"></div>
+            <!-- Metadata Table -->
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #111827;">
+              <tr>
+                <td align="left" style="padding-bottom: 2px;">Date:</td>
+                <td align="right" style="padding-bottom: 2px;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td align="left" style="padding-bottom: 2px;">Tab:</td>
+                <td align="right" style="padding-bottom: 2px;">${orderObj.tabName || 'Counter'}</td>
+              </tr>
+              <tr>
+                <td align="left">Ref:</td>
+                <td align="right" style="word-break: break-all;">${orderObj.id || orderObj._id}</td>
+              </tr>
+            </table>
 
-            <div style="margin-bottom: 16px;">
-              <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #34d399; margin-bottom: 12px;">Items Ordered</div>
-              ${itemsHtml}
-            </div>
+            <!-- Dashed Separator -->
+            <div style="border-top: 1px dashed #000000; margin: 12px 0;"></div>
 
-            <div style="border-top: 1px dashed rgba(255,255,255,0.15); margin: 16px 0;"></div>
+            <!-- Items -->
+            <div style="font-weight: bold; margin-bottom: 6px;">ITEMS:</div>
+            ${itemsHtml}
 
-            <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span>Subtotal</span> <span>${formatNGN(orderObj.subtotal)}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span>VAT (7.5%)</span> <span>${formatNGN(orderObj.vat)}</span>
-              </div>
+            <!-- Dashed Separator -->
+            <div style="border-top: 1px dashed #000000; margin: 12px 0;"></div>
+
+            <!-- Totals Table -->
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #111827;">
+              <tr>
+                <td align="left" style="padding-bottom: 4px;">SUBTOTAL:</td>
+                <td align="right" style="padding-bottom: 4px;">${formatNGN(orderObj.subtotal)}</td>
+              </tr>
+              <tr>
+                <td align="left" style="padding-bottom: 4px;">VAT (7.5%):</td>
+                <td align="right" style="padding-bottom: 4px;">${formatNGN(orderObj.vat)}</td>
+              </tr>
               ${
                 orderObj.discount > 0
-                  ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #f87171;">
-                      <span>Discount</span> <span>-${formatNGN(orderObj.discount)}</span>
-                    </div>`
+                  ? `<tr>
+                      <td align="left" style="padding-bottom: 4px;">DISCOUNT:</td>
+                      <td align="right" style="padding-bottom: 4px;">-${formatNGN(orderObj.discount)}</td>
+                    </tr>`
                   : ''
               }
-              <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #34d399; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 10px; margin-top: 8px;">
-                <span>Total Paid</span> <span>${formatNGN(orderObj.total)}</span>
-              </div>
+            </table>
+
+            <div style="border-top: 1px dashed #000000; margin: 8px 0 6px 0;"></div>
+
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; color: #000000;">
+              <tr>
+                <td align="left">TOTAL:</td>
+                <td align="right">${formatNGN(orderObj.total)}</td>
+              </tr>
+            </table>
+
+            ${customerInfoHtml}
+
+            <!-- Dashed Separator -->
+            <div style="border-top: 1px dashed #000000; margin: 12px 0;"></div>
+
+            <!-- Footer -->
+            <div style="text-align: center; font-weight: bold; font-size: 11px; text-transform: uppercase;">
+              PAID VIA CASH
+            </div>
+            <div style="text-align: center; font-size: 11px; margin-top: 8px;">
+              Thank you for your patronage!
+            </div>
+            <div style="text-align: center; font-size: 9px; color: #666666; margin-top: 6px;">
+              Malt &amp; Lime - Nigerian hospitality rhythm
             </div>
 
-            <div style="text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 16px; margin-top: 20px;">
-              Paid via Cash • Thank you for your patronage!
-            </div>
           </div>
         </body>
         </html>
