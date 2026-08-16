@@ -922,7 +922,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
       {/* On-Screen High-Fidelity Receipt Modal */}
       {receiptToPrint && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm print:hidden overflow-y-auto">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c1a17] p-4 sm:p-6 shadow-2xl relative flex flex-col">
+          <div className="w-full max-w-md max-h-[calc(100vh-2rem)] sm:max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c1a17] p-4 sm:p-6 shadow-2xl relative flex flex-col">
             <div className="flex items-center justify-between border-b border-white/5 pb-3 sm:pb-4 mb-3 sm:mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-white">Order Receipt</h3>
@@ -938,7 +938,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
             </div>
 
             {/* Simulated Thermal Receipt */}
-            <div className="bg-white text-slate-900 p-4 sm:p-5 rounded-lg shadow-inner font-mono text-xs leading-relaxed max-h-[220px] sm:max-h-[280px] overflow-y-auto relative">
+            <div className="bg-white text-slate-900 p-4 sm:p-5 rounded-lg shadow-inner font-mono text-xs leading-relaxed relative">
               {isSimulatingPrint && (
                 <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center text-emerald-600 font-sans font-semibold text-center z-10">
                   <span className="animate-bounce text-xl">🖨️</span>
