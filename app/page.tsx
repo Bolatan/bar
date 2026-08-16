@@ -902,9 +902,9 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
 
       {/* On-Screen High-Fidelity Receipt Modal */}
       {receiptToPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm print:hidden">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0c1a17] p-6 shadow-2xl relative overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm print:hidden overflow-y-auto">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c1a17] p-4 sm:p-6 shadow-2xl relative flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 sm:pb-4 mb-3 sm:mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-white">Order Receipt</h3>
                 <p className="text-xs text-slate-400">Checkout completed successfully.</p>
@@ -912,14 +912,14 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               <button
                 type="button"
                 onClick={() => setReceiptToPrint(null)}
-                className="text-slate-500 hover:text-white"
+                className="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-white/5 transition"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Simulated Thermal Receipt */}
-            <div className="bg-white text-slate-900 p-5 rounded-lg shadow-inner font-mono text-xs leading-relaxed max-h-[350px] overflow-y-auto relative">
+            <div className="bg-white text-slate-900 p-4 sm:p-5 rounded-lg shadow-inner font-mono text-xs leading-relaxed max-h-[220px] sm:max-h-[280px] overflow-y-auto relative">
               {isSimulatingPrint && (
                 <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center text-emerald-600 font-sans font-semibold text-center z-10">
                   <span className="animate-bounce text-xl">🖨️</span>
@@ -1013,7 +1013,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
             </div>
 
             {/* Digital Receipt Dispatch Options */}
-            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 space-y-3">
+            <div className="mt-3 sm:mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 sm:p-3.5 space-y-2.5 sm:space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
                   <Send size={13} /> Send Digital Receipt
@@ -1025,7 +1025,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-300 font-medium block">Recipient Email</label>
                 <div className="flex gap-2">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="email"
@@ -1050,7 +1050,7 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-300 font-medium block">Recipient WhatsApp Number</label>
                 <div className="flex gap-2">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <MessageSquare size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
@@ -1080,13 +1080,13 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
                   }`}
                 >
                   {sendFeedback.type === 'success' && <CheckCircle2 size={15} className="text-emerald-300 shrink-0 mt-0.5" />}
-                  <span>{sendFeedback.message}</span>
+                  <span className="break-words">{sendFeedback.message}</span>
                 </div>
               )}
             </div>
 
             {/* Actions */}
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 sm:mt-4 space-y-2">
               <button
                 type="button"
                 onClick={() => {
