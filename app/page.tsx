@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Beer, Boxes, CheckCircle2, ChevronRight, CircleDollarSign, ClipboardList, Clock3, Edit2, Eye, EyeOff, LogOut, Mail, Megaphone, Menu, MessageSquare, PackagePlus, Plus, Search, Send, Settings, ShieldAlert, ShoppingCart, Sparkles, Users, X } from 'lucide-react';
 import { api, ApiError, clearTokens, saveTokens, type Order, type Product, type Profile } from '@/lib/api';
+import { generateReceiptPngDataUrl } from '@/lib/receiptImage';
 import Shifts from '@/components/Shifts';
 import Reports from '@/components/Reports';
 import Team from '@/components/Team';
@@ -640,16 +641,34 @@ function Pos({ products, refresh }: { products: Product[]; refresh: () => void }
     setIsSendingWhatsApp(true);
     setSendFeedback(null);
     try {
+      let pngDataUrl = '';
+      try {
+        pngDataUrl = await generateReceiptPngDataUrl(receiptToPrint);
+      } catch (e) {
+        console.warn('PNG generation failed, proceeding with text receipt:', e);
+      }
+
+      if (pngDataUrl) {
+        const link = document.createElement('a');
+        link.href = pngDataUrl;
+        link.download = `receipt-${receiptToPrint.id || 'maltlime'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
       const res = await api.orders.sendReceipt(receiptToPrint.id, {
         type: 'whatsapp',
         recipientPhone: sendPhoneInput.trim()
       });
+
       if (res.waUrl) {
         window.open(res.waUrl, '_blank');
       }
+
       setSendFeedback({
         type: 'success',
-        message: `WhatsApp receipt generated for ${res.recipientPhone || sendPhoneInput}`
+        message: `WhatsApp receipt (PNG downloaded & text formatted) ready for ${res.recipientPhone || sendPhoneInput}`
       });
     } catch (err) {
       setSendFeedback({
