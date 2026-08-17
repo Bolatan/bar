@@ -98,7 +98,7 @@ export default function Campaigns() {
   const [busy, setBusy] = useState(false);
 
   // Auto-populate helper
-  const autoPopulateRecipients = useCallback((targetTab: 'email' | 'whatsapp', list = customers) => {
+  const autoPopulateRecipients = useCallback((targetTab: 'email' | 'whatsapp', list: Customer[]) => {
     const nextSelected = new Set<string>();
     list.forEach(c => {
       const key = c.id || c._id || c.email || c.phone;
@@ -114,10 +114,10 @@ export default function Campaigns() {
       }
     });
     setSelectedKeys(nextSelected);
-  }, [customers]);
+  }, []);
 
   // Fetch customer contacts
-  const fetchContacts = useCallback(async (shouldAutoPopulate = false) => {
+  const fetchContacts = useCallback(async (shouldAutoPopulate = false, tabToPopulate = activeTab) => {
     setLoading(true);
     setError('');
     try {
@@ -126,14 +126,14 @@ export default function Campaigns() {
       setCustomers(loaded);
 
       if (shouldAutoPopulate) {
-        autoPopulateRecipients(activeTab, loaded);
+        autoPopulateRecipients(tabToPopulate, loaded);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch customer contacts');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, autoPopulateRecipients]);
+  }, [autoPopulateRecipients]);
 
   useEffect(() => {
     fetchContacts(true);
