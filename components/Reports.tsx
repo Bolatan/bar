@@ -2,7 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { TrendingUp, ClipboardList, AlertTriangle, Banknote, Users, Percent, Beer, Boxes } from 'lucide-react';
+import {
+  TrendingUp,
+  ClipboardList,
+  AlertTriangle,
+  Banknote,
+  Users,
+  Percent,
+  Beer,
+  Boxes,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Presentation,
+} from 'lucide-react';
+import {
+  exportSalesToExcel,
+  exportSalesToPdf,
+  exportSalesToPptx,
+  exportValuationToExcel,
+  exportValuationToPdf,
+  exportValuationToPptx,
+  exportLowStockToExcel,
+  exportLowStockToPdf,
+  exportLowStockToPptx,
+} from '@/lib/reportExport';
 
 const money = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 });
 
@@ -61,6 +85,27 @@ export default function Reports() {
     loadReports();
   }, [subView, salesPeriod]);
 
+  const handleExport = (format: 'xlsx' | 'pdf' | 'pptx') => {
+    if (subView === 'sales' && salesData) {
+      if (format === 'xlsx') exportSalesToExcel(salesData);
+      if (format === 'pdf') exportSalesToPdf(salesData);
+      if (format === 'pptx') exportSalesToPptx(salesData);
+    } else if (subView === 'valuation' && valuationData) {
+      if (format === 'xlsx') exportValuationToExcel(valuationData);
+      if (format === 'pdf') exportValuationToPdf(valuationData);
+      if (format === 'pptx') exportValuationToPptx(valuationData);
+    } else if (subView === 'lowstock' && lowStockData) {
+      if (format === 'xlsx') exportLowStockToExcel(lowStockData);
+      if (format === 'pdf') exportLowStockToPdf(lowStockData);
+      if (format === 'pptx') exportLowStockToPptx(lowStockData);
+    }
+  };
+
+  const isExportReady =
+    (subView === 'sales' && salesData) ||
+    (subView === 'valuation' && valuationData) ||
+    (subView === 'lowstock' && lowStockData);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -71,25 +116,68 @@ export default function Reports() {
           <p className="mt-2 text-sm text-slate-400">Perform real-time analytics on sales activity, inventory valuation, and stock health.</p>
         </div>
 
-        {/* View Switcher */}
-        <div className="flex rounded-xl bg-white/[0.03] p-1 border border-white/5">
+        {/* View Switcher & Export Group */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex rounded-xl bg-white/[0.03] p-1 border border-white/5">
+            <button
+              onClick={() => setSubView('sales')}
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'sales' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
+              Sales Analysis
+            </button>
+            <button
+              onClick={() => setSubView('valuation')}
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'valuation' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
+              Stock Valuation
+            </button>
+            <button
+              onClick={() => setSubView('lowstock')}
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'lowstock' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
+              Low Stock
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Export Toolbar Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-3 px-4">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Download size={15} className="text-emerald-400" />
+          <span className="font-medium text-slate-300">Export Report Options:</span>
+          <span className="text-slate-500 hidden sm:inline">Download executive summaries in XLSX, PDF, or PPTX</span>
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setSubView('sales')}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'sales' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            onClick={() => handleExport('xlsx')}
+            disabled={!isExportReady || loading}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Download Excel Spreadsheet (.xlsx)"
           >
-            Sales Analysis
+            <FileSpreadsheet size={14} />
+            <span>Excel (.xlsx)</span>
           </button>
+
           <button
-            onClick={() => setSubView('valuation')}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'valuation' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            onClick={() => handleExport('pdf')}
+            disabled={!isExportReady || loading}
+            className="flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Download PDF Document (.pdf)"
           >
-            Stock Valuation
+            <FileText size={14} />
+            <span>PDF (.pdf)</span>
           </button>
+
           <button
-            onClick={() => setSubView('lowstock')}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${subView === 'lowstock' ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            onClick={() => handleExport('pptx')}
+            disabled={!isExportReady || loading}
+            className="flex items-center gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Download PowerPoint Presentation (.pptx)"
           >
-            Low Stock
+            <Presentation size={14} />
+            <span>PowerPoint (.pptx)</span>
           </button>
         </div>
       </div>
