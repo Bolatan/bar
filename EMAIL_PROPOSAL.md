@@ -1,24 +1,24 @@
-# Business Proposal Email: Malt & Lime Bar & Hospitality Management Workspace
+# Business Proposal Email: Malt & Lime Hospitality Management Workspace
 
-Below is a tailored, professional B2B email proposal designed for decision-makers (owners, general managers, and operations leads) at restaurants, hotels, lounges, and bars.
+Below is a professional B2B email proposal designed for decision-makers (owners, general managers, and operations leads) at restaurants, hotels, lounges, and bars.
 
 ---
 
 ## 📧 Subject Line Options
 
-- **Option 1 (Pain-point focused):** Stop stock leakage & boost profit margins at [Venue Name] with Malt & Lime
-- **Option 2 (Solution focused):** Modern Bar & Lounge Management System for [Venue Name] – 100% Offline-Resilient POS
-- **Option 3 (Executive / Direct):** Proposal: Streamline POS, Stock Control & Audit Ledger for [Venue Name]
+- **Option 1 (Pain-point focused):** Stop stock leakage & boost profit margins at your venue with Malt & Lime
+- **Option 2 (Solution focused):** Modern Bar, Hotel & Lounge Management System – 100% Offline-Resilient POS
+- **Option 3 (Executive / Direct):** Proposal: Streamline POS, Stock Control & Audit Ledger for your hospitality business
 
 ---
 
 ## 📩 Email Template
 
-**Subject:** Streamline Operations & Safeguard Profits at [Venue Name] with Malt & Lime
+**Subject:** Streamline Operations & Safeguard Profits at Your Venue with Malt & Lime
 
-Dear [Owner / General Manager Name],
+Dear Operations Lead / Business Owner,
 
-Managing a busy hospitality venue like **[Venue Name]** comes with high-stakes daily challenges—from handling unpredictable network connections to monitoring stock leakage, managing tab checkouts, and preventing revenue loss.
+Managing a busy hospitality business comes with high-stakes daily challenges—from handling unpredictable network connections to monitoring stock leakage, managing tab checkouts, and preventing revenue loss.
 
 I am reaching out to introduce **Malt & Lime**, an all-in-one POS, Inventory, and Hospitality Management Workspace engineered specifically for restaurants, hotels, lounges, and bars.
 
@@ -56,7 +56,7 @@ Whether you operate a high-volume bar, a fine-dining restaurant, a hotel beverag
 
 ### See Malt & Lime in Action
 
-We would love to demonstrate how Malt & Lime can optimize throughput, protect your margins, and streamline staff workflows at **[Venue Name]**.
+We would love to demonstrate how Malt & Lime can optimize throughput, protect your margins, and streamline staff workflows across your business.
 
 **👉 [Click Here to Schedule a 15-Minute Demo]** *(or visit https://maltlime.ng/demo)*
 
@@ -73,11 +73,11 @@ Warm regards,
 
 ## 🔄 Short Follow-Up Email (Send 3 days after initial email)
 
-**Subject:** Re: Streamline Operations & Safeguard Profits at [Venue Name]
+**Subject:** Re: Streamline Operations & Safeguard Profits at Your Venue
 
-Hi [Name],
+Hi there,
 
-I wanted to quickly follow up on my previous note regarding **Malt & Lime** for **[Venue Name]**.
+I wanted to quickly follow up on my previous note regarding **Malt & Lime** for your hospitality business.
 
 I know how demanding running a venue is, so I'll keep this brief: our offline-first POS and stock tracking system has helped hospitality venues cut inventory leakage and streamline busy service shifts.
 
